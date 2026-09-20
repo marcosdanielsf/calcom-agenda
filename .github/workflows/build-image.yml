@@ -36,5 +36,9 @@ jobs:
             CALENDSO_ENCRYPTION_KEY=placeholder-build-only
             DATABASE_URL=postgresql://placeholder/placeholder
             MAX_OLD_SPACE_SIZE=6144
+            NEXT_PUBLIC_APP_NAME=Socialfy Agenda
+            NEXT_PUBLIC_COMPANY_NAME=Socialfy
+            NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS=suporte@socialfy.me
+            NEXT_PUBLIC_DISABLE_SIGNUP=1
           cache-from: type=gha
           cache-to: type=gha,mode=max
