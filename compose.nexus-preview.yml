@@ -1,0 +1,20 @@
+# Updated: 2026-09-09 07:07 BRT. Isolated synthetic data only.
+name: nexus-agenda-preview
+services:
+  database:
+    image: postgres:16-alpine
+    ports:
+      - "127.0.0.1:55437:5432"
+    environment:
+      POSTGRES_USER: agenda_preview
+      POSTGRES_DB: agenda_preview
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - agenda-preview-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agenda_preview -d agenda_preview"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+volumes:
+  agenda-preview-data:

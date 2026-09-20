@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+const base = 'http://127.0.0.1:3117';
+const enginePort = process.env.NEXUS_PREVIEW_ENGINE_PORT === '3119' ? 3119 : 3118;
+const health = async () => (await fetch(`http://127.0.0.1:${enginePort}/health`)).json();
+const before = await health();
+assert.equal(before.fixture, true);
+assert.equal(before.externalEffects, false);
+const from = new Date(), to = new Date(Date.now() + 7 * 86400000);
+const query = encodeURIComponent(JSON.stringify({ json: { usernameList: ['socialfy'], eventTypeSlug: 'demonstracao', startTime: from.toISOString(), endTime: to.toISOString(), timeZone: 'America/Sao_Paulo', isTeamEvent: false } }));
+const slotsResponse = await fetch(`${base}/api/trpc/slots/getSchedule?input=${query}`);
+assert.equal(slotsResponse.status, 200, 'availability HTTP');
+const slotsBody = await slotsResponse.json();
+const slots = Object.values(slotsBody.result.data.json.slots).flat();
+assert.ok(slots.length >= 3);
+assert.equal(JSON.stringify(slotsBody).includes('synthetic_local_preview_token'), false);
+const body = { eventTypeId: 1, eventTypeSlug: 'demonstracao', start: slots[0].time, responses: { name: 'Teste local', email: 'integration@example.test', attendeePhoneNumber: '+15555550101', nexusTransactionalMessages: true } };
+async function post(data, key = randomUUID()) {
+  const response = await fetch(`${base}/api/book/event`, { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': key }, body: JSON.stringify(data) });
+  return { status: response.status, body: await response.json() };
+}
+async function status(key, eventTypeId = 1) {
+  const response = await fetch(`${base}/api/book/status?eventTypeId=${eventTypeId}`, { headers: { 'idempotency-key': key } });
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  return { status: response.status, body: await response.json() };
+}
+assert.equal((await post({ ...body, responses: { ...body.responses, nexusTransactionalMessages: false } })).status, 400);
+assert.equal((await post({ ...body, eventTypeId: 999 })).status, 404);
+assert.equal((await health()).calendarCalls, before.calendarCalls);
+const key = randomUUID();
+const pair = await Promise.all([post(body, key), post(body, key)]);
+assert.ok(pair.some(r => r.body.agendaStatus === 'confirmed'));
+assert.deepEqual(await post(body, key), { status: 200, body: { agendaStatus: 'confirmed' } });
+assert.equal((await health()).calendarCalls, before.calendarCalls + 1, 'same-key race and retry must create only once');
+const pending = { ...body, start: slots[1].time, responses: { ...body.responses, email: 'processing@example.test' } };
+const pendingKey = randomUUID();
+assert.deepEqual(await post(pending, pendingKey), { status: 200, body: { agendaStatus: 'processing' } });
+assert.deepEqual(await post(pending, pendingKey), { status: 200, body: { agendaStatus: 'processing' } });
+const rejected = { ...body, start: slots[2].time, responses: { ...body.responses, email: 'rejected@example.test' } };
+const rejectedKey = randomUUID();
+assert.equal((await post(rejected, rejectedKey)).status, 409);
+assert.equal((await post(rejected, rejectedKey)).status, 409);
+assert.deepEqual(await status(key), { status: 200, body: { agendaStatus: 'confirmed' } });
+assert.deepEqual(await status(pendingKey), { status: 200, body: { agendaStatus: 'processing' } });
+assert.deepEqual(await status(rejectedKey), { status: 200, body: { agendaStatus: 'rejected' } });
+assert.equal((await status(randomUUID())).status, 404);
+assert.equal((await status(key, 999)).status, 404);
+const after = await health();
+assert.equal(after.calendarCalls, before.calendarCalls + 3);
+console.log('PASS: real Next -> Nexus HTTP/service; availability, consent, binding, concurrent replay, confirmed/processing/rejected and read-only status recovery. Synthetic calendar only; 3 effects for 3 valid intentions, no extra creation from lookups.');
