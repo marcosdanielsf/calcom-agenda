@@ -1,3 +1,5 @@
+import { APP_NAME } from "@calcom/lib/constants";
+
 import type { AuditActorType } from "../repository/IAuditActorRepository";
 import type { BookingAuditWithActor } from "../repository/IBookingAuditRepository";
 import { getAppNameFromSlug } from "../getAppNameFromSlug";
@@ -74,7 +76,7 @@ export const ACTOR_STRATEGIES: Record<AuditActorType, ActorStrategy> = {
   },
   SYSTEM: {
     getRequirements: () => ({}),
-    enrich: () => ({ displayName: "Cal.diy", displayEmail: null, displayAvatar: null }),
+    enrich: () => ({ displayName: APP_NAME, displayEmail: null, displayAvatar: null }),
   },
   GUEST: {
     getRequirements: () => ({}),
