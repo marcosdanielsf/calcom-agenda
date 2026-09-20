@@ -385,8 +385,8 @@ const nextConfig = (phase: string): NextConfig => {
           source: "/auth/:path*",
           headers: [
             {
-              key: "X-Frame-Options",
-              value: "DENY",
+              key: "Content-Security-Policy",
+              value: "frame-ancestors 'self' https://nexus.socialfy.me http://localhost:5173",
             },
           ],
         },
@@ -394,8 +394,8 @@ const nextConfig = (phase: string): NextConfig => {
           source: "/signup",
           headers: [
             {
-              key: "X-Frame-Options",
-              value: "DENY",
+              key: "Content-Security-Policy",
+              value: "frame-ancestors 'self' https://nexus.socialfy.me http://localhost:5173",
             },
           ],
         },

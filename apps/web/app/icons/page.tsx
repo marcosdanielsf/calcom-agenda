@@ -1,7 +1,6 @@
 import { _generateMetadataForStaticPage } from "app/_utils";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import localFont from "next/font/local";
+import { Bricolage_Grotesque, Manrope } from "next/font/google";
 
 import { IconSprites } from "@calcom/ui/components/icon";
 import type { IconName } from "@calcom/ui/components/icon";
@@ -15,9 +14,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return await _generateMetadataForStaticPage("Icons Showcase", "", undefined, undefined, "/icons");
 }
 
-const interFont = Inter({ subsets: ["latin"], variable: "--font-sans", preload: true, display: "swap" });
-const calFont = localFont({
-  src: "../../fonts/CalSans-SemiBold.woff2",
+const interFont = Manrope({ subsets: ["latin"], variable: "--font-sans", preload: true, display: "swap" });
+const calFont = Bricolage_Grotesque({
+  subsets: ["latin"],
   variable: "--font-cal",
   preload: true,
   display: "swap",
