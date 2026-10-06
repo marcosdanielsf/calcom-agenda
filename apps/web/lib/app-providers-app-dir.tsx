@@ -1,4 +1,5 @@
 import { FeatureProvider } from "@calcom/features/flags/context/provider";
+// Atualizado: 2026-10-06 10:12 BRT. O modo Nexus fixa o tema sem alterar a preferencia standalone.
 import { useFlags } from "@calcom/web/modules/feature-flags/hooks/useFlags";
 import type { PageWrapperProps } from "@components/PageWrapperAppDir";
 import useIsBookingPage from "@lib/hooks/useIsBookingPage";
@@ -13,6 +14,7 @@ import type { Session } from "next-auth";
 import { useSession } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { useNexusTheme } from "../modules/shell/NexusShell";
 import { getThemeProviderProps } from "./getThemeProviderProps";
 
 // Workaround for https://github.com/vercel/next.js/issues/8592
@@ -50,6 +52,7 @@ type CalcomThemeProps = Readonly<{
 }>;
 
 const CalcomThemeProvider = (props: CalcomThemeProps) => {
+  const nexusTheme = useNexusTheme();
   // Use namespace of embed to ensure same namespaced embed are displayed with same theme. This allows different embeds on the same website to be themed differently
   // One such example is our Embeds Demo and Testing page at http://localhost:3100
   // Having `getEmbedNamespace` defined on window before react initializes the app, ensures that embedNamespace is available on the first mount and can be used as part of storageKey
@@ -64,9 +67,12 @@ const CalcomThemeProvider = (props: CalcomThemeProps) => {
     pathname,
     searchParams,
   });
+  const nexusThemeProviderProps = nexusTheme
+    ? { ...themeProviderProps, forcedTheme: nexusTheme }
+    : themeProviderProps;
 
   return (
-    <ThemeProvider key={key} {...themeProviderProps}>
+    <ThemeProvider key={nexusTheme ? `${key}:nexus` : key} {...nexusThemeProviderProps}>
       {/* Embed Mode can be detected reliably only on client side here as there can be static generated pages as well which can't determine if it's embed mode at backend */}
       {/* color-scheme makes background:transparent not work in iframe which is required by embed. */}
       {typeof window !== "undefined" && !isEmbedMode && (

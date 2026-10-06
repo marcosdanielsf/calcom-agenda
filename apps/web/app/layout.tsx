@@ -1,4 +1,5 @@
 import { getLocale } from "@calcom/features/auth/lib/getLocale";
+// Atualizado: 2026-10-06 10:12 BRT. Tema SSR do modo Nexus nasce antes do app e dos portais.
 import { loadTranslations } from "@calcom/i18n/server";
 import { IconSprites } from "@calcom/ui/components/icon";
 import { buildLegacyRequest } from "@lib/buildLegacyCtx";
@@ -10,7 +11,9 @@ import type React from "react";
 
 import "../styles/globals.css";
 import "../styles/nexus-shell.css";
+import process from "node:process";
 import { NexusShellProvider } from "../modules/shell/NexusShell";
+import { NEXUS_THEME_BOOT_SCRIPT, resolveLocalThemeMessageOrigin } from "../modules/shell/nexusThemeOrigin";
 import { AppRouterI18nProvider } from "./AppRouterI18nProvider";
 import { Providers } from "./providers";
 import { SpeculationRules } from "./SpeculationRules";
@@ -98,6 +101,11 @@ const getInitialProps = async () => {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const h = await headers();
   const shellPreference = (await cookies()).get("nexus_agenda_shell")?.value;
+  const themePreference = (await cookies()).get("nexus_agenda_theme")?.value;
+  const localThemeMessageOrigin = resolveLocalThemeMessageOrigin(
+    process.env.NEXUS_AGENDA_LOCAL_PARENT_ORIGIN,
+    process.env.NODE_ENV
+  );
   const nonce = h.get("x-csp-nonce") ?? "";
 
   const country = h.get("cf-ipcountry") || h.get("x-vercel-ip-country") || "Unknown";
@@ -117,10 +125,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       suppressHydrationWarning
       data-nextjs-router="app">
       <head nonce={nonce}>
+        <script
+          nonce={nonce}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: Script estatico aplica o tema antes do primeiro paint.
+          dangerouslySetInnerHTML={{ __html: NEXUS_THEME_BOOT_SCRIPT }}
+        />
         <style>{`
           :root {
-            --font-sans: ${interFont.style.fontFamily.replace(/\'/g, "")}, system-ui;
-            --font-cal: ${calFont.style.fontFamily.replace(/\'/g, "")};
+            --font-sans: ${interFont.style.fontFamily.replace(/'/g, "")}, system-ui;
+            --font-cal: ${calFont.style.fontFamily.replace(/'/g, "")};
             --font-nexus: ${nexusFont.style.fontFamily};
           }
         `}</style>
@@ -152,23 +165,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 opacity: 1,
               }
         }>
-        <IconSprites />
-        <SpeculationRules
-          // URLs In Navigation
-          prerenderPathsOnHover={[
-            "/event-types",
-            "/availability",
-            "/bookings/upcoming",
-            "/teams",
-            "/apps",
-          ]}
-        />
+        <NexusShellProvider
+          initialPreference={shellPreference}
+          initialTheme={themePreference}
+          localThemeMessageOrigin={localThemeMessageOrigin}>
+          <IconSprites />
+          <SpeculationRules
+            // URLs In Navigation
+            prerenderPathsOnHover={["/event-types", "/availability", "/bookings/upcoming", "/teams", "/apps"]}
+          />
 
-        <Providers isEmbed={isEmbed} nonce={nonce} country={country}>
-          <AppRouterI18nProvider translations={translations} locale={locale} ns={ns}>
-            <NexusShellProvider initialPreference={shellPreference}>{children}</NexusShellProvider>
-          </AppRouterI18nProvider>
-        </Providers>
+          <Providers isEmbed={isEmbed} nonce={nonce} country={country}>
+            <AppRouterI18nProvider translations={translations} locale={locale} ns={ns}>
+              {children}
+            </AppRouterI18nProvider>
+          </Providers>
+        </NexusShellProvider>
       </body>
     </html>
   );
