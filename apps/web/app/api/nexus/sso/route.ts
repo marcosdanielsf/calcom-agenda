@@ -51,15 +51,16 @@ async function handler(req: NextRequest) {
     return fail("invalid_token", 401);
   }
 
+  // dest antes do jti: destino recusado nao queima o token.
+  const route = resolveDestRoute(dest);
+  if (!route) return fail("invalid_dest", 400);
+
   try {
     await consumeJti(claims.jti, claims.exp);
   } catch (e) {
     if (e instanceof NexusSsoJtiReusedError) return fail("invalid_token", 401);
     throw e;
   }
-
-  const route = resolveDestRoute(dest);
-  if (!route) return fail("invalid_dest", 400);
 
   let user: Awaited<ReturnType<typeof resolveNexusUser>>;
   try {

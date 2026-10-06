@@ -211,9 +211,10 @@ describe("POST /api/nexus/sso, recusas", () => {
     );
   });
 
-  it("dest fora do mapa responde 400", async () => {
+  it("dest fora do mapa responde 400 sem queimar o jti", async () => {
     const res = await call(await okReq({ dest: "https://evil.example/x" }));
     expect(res.status).toBe(400);
+    expect(prismaMock.verificationToken.create).not.toHaveBeenCalled();
   });
 
   it("email de conta nao vinculada responde 409 sem criar nada", async () => {
