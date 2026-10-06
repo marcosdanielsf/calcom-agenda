@@ -1,4 +1,4 @@
-/* Criado: 2026-10-05 23:36 BRT. Tokens da casca V2 aprovada.
+/* Atualizado: 2026-10-06 10:12 BRT. Tokens claro e escuro da casca V2 aprovada.
    O marcador vem no HTML renderizado: tema desde o primeiro paint, inclusive em portais. */
 :root:has([data-nexus-shell="true"]) {
   color-scheme: light;
@@ -16,7 +16,7 @@
   --radius-cal-lg: 8px;
   --radius-cal-xl: 8px;
   --cal-bg: #ffffff;
-  --cal-bg-subtle: #f2f7fa;
+  --cal-bg-subtle: transparent;
   --cal-bg-muted: #f9fafb;
   --cal-bg-emphasis: #f2f4f7;
   --cal-bg-inverted: #101828;
@@ -39,7 +39,7 @@
   --cal-bg-brand: #155eef;
   --cal-bg-brand-emphasis: #155eef;
   --cal-bg-brand-muted: #eff4ff;
-  --background: #ffffff;
+  --background: transparent;
   --foreground: #101828;
   --card: #ffffff;
   --card-foreground: #101828;
@@ -56,6 +56,7 @@
   --border: #eaecf0;
   --input: #d0d5dd;
   --ring: #155eef;
+  --link: #155eef;
 }
 
 :root:has([data-nexus-shell="true"]) body {
@@ -63,9 +64,59 @@
   font-size: 14px;
   line-height: 21px;
   color: var(--cal-text);
-  background: #f2f7fa;
+  background: transparent;
 }
 
 :root:has([data-nexus-shell="true"]) :is(button, input, select, textarea) {
   font-family: var(--font-sans);
+}
+
+:root:has([data-nexus-shell="true"][data-nexus-theme="dark"]) {
+  color-scheme: dark;
+  --cal-bg: #1e293b;
+  --cal-bg-subtle: transparent;
+  --cal-bg-muted: #273449;
+  --cal-bg-emphasis: #2d3748;
+  --cal-bg-inverted: #f1f5f9;
+  --cal-text: #f1f5f9;
+  --cal-text-emphasis: #f1f5f9;
+  --cal-text-subtle: #94a3b8;
+  --cal-text-muted: #94a3b8;
+  --cal-text-inverted: #0f172a;
+  --cal-border: #334155;
+  --cal-border-subtle: #334155;
+  --cal-border-muted: #334155;
+  --cal-border-emphasis: #475569;
+  --cal-brand: #2563eb !important;
+  --cal-brand-emphasis: #2563eb !important;
+  --cal-brand-text: #ffffff !important;
+  --cal-bg-primary: #2563eb;
+  --cal-bg-primary-emphasis: #2563eb;
+  --cal-bg-primary-muted: rgba(59, 130, 246, 0.16);
+  --cal-bg-brand: #2563eb;
+  --cal-bg-brand-emphasis: #2563eb;
+  --cal-bg-brand-muted: rgba(59, 130, 246, 0.16);
+  --background: transparent;
+  --foreground: #f1f5f9;
+  --card: #1e293b;
+  --card-foreground: #f1f5f9;
+  --popover: #1e293b;
+  --popover-foreground: #f1f5f9;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #273449;
+  --secondary-foreground: #f1f5f9;
+  --muted: #273449;
+  --muted-foreground: #94a3b8;
+  --accent: rgba(59, 130, 246, 0.16);
+  --accent-foreground: #60a5fa;
+  --border: #334155;
+  --input: #475569;
+  --ring: #60a5fa;
+  --link: #60a5fa;
+}
+
+:root:has([data-nexus-shell="true"][data-nexus-theme="dark"]) body {
+  color: #f1f5f9;
+  background: transparent;
 }
