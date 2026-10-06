@@ -3,17 +3,21 @@ import { loadTranslations } from "@calcom/i18n/server";
 import { IconSprites } from "@calcom/ui/components/icon";
 import { buildLegacyRequest } from "@lib/buildLegacyCtx";
 import { dir } from "i18next";
-import { Bricolage_Grotesque, Manrope } from "next/font/google";
+import { Bricolage_Grotesque, Manrope, Roboto } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import Script from "next/script";
 import type React from "react";
 
 import "../styles/globals.css";
+import "../styles/nexus-shell.css";
+import process from "node:process";
+import { NexusShellProvider } from "../modules/shell/NexusShell";
 import { AppRouterI18nProvider } from "./AppRouterI18nProvider";
 import { Providers } from "./providers";
 import { SpeculationRules } from "./SpeculationRules";
 
 const interFont = Manrope({ subsets: ["latin"], variable: "--font-sans", preload: true, display: "swap" });
+const nexusFont = Roboto({ subsets: ["latin"], display: "swap", preload: false });
 const calFont = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-cal",
@@ -94,6 +98,7 @@ const getInitialProps = async () => {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const h = await headers();
+  const shellPreference = (await cookies()).get("nexus_agenda_shell")?.value;
   const nonce = h.get("x-csp-nonce") ?? "";
 
   const country = h.get("cf-ipcountry") || h.get("x-vercel-ip-country") || "Unknown";
@@ -115,8 +120,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head nonce={nonce}>
         <style>{`
           :root {
-            --font-sans: ${interFont.style.fontFamily.replace(/\'/g, "")}, system-ui;
-            --font-cal: ${calFont.style.fontFamily.replace(/\'/g, "")};
+            --font-sans: ${interFont.style.fontFamily.replace(/'/g, "")}, system-ui;
+            --font-cal: ${calFont.style.fontFamily.replace(/'/g, "")};
+            --font-nexus: ${nexusFont.style.fontFamily};
           }
         `}</style>
         {process.env.NODE_ENV === "development" && (
@@ -150,18 +156,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <IconSprites />
         <SpeculationRules
           // URLs In Navigation
-          prerenderPathsOnHover={[
-            "/event-types",
-            "/availability",
-            "/bookings/upcoming",
-            "/teams",
-            "/apps",
-          ]}
+          prerenderPathsOnHover={["/event-types", "/availability", "/bookings/upcoming", "/teams", "/apps"]}
         />
 
         <Providers isEmbed={isEmbed} nonce={nonce} country={country}>
           <AppRouterI18nProvider translations={translations} locale={locale} ns={ns}>
-            {children}
+            <NexusShellProvider initialPreference={shellPreference}>{children}</NexusShellProvider>
           </AppRouterI18nProvider>
         </Providers>
       </body>

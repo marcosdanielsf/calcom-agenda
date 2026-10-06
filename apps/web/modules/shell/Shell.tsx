@@ -1,33 +1,32 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import type { Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
-import type React from "react";
-import { cloneElement } from "react";
-import { Toaster } from "sonner";
-
-import { useFormbricks } from "@calcom/web/modules/formbricks/hooks/useFormbricks";
-import { useRedirectToLoginIfUnauthenticated } from "@calcom/web/modules/auth/hooks/useRedirectToLoginIfUnauthenticated";
-import { useRedirectToOnboardingIfNeeded } from "@calcom/web/modules/auth/hooks/useRedirectToOnboardingIfNeeded";
-
-import TimezoneChangeDialog from "@calcom/web/modules/settings/components/TimezoneChangeDialog";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import classNames from "@calcom/ui/classNames";
 import { Button } from "@calcom/ui/components/button";
 import { ErrorBoundary } from "@calcom/ui/components/errorBoundary";
 import { SkeletonText } from "@calcom/ui/components/skeleton";
-
-import { DynamicModals } from "./DynamicModals";
-import { KBarContent, KBarRoot } from "./Kbar";
-import { SideBarContainer } from "./SideBar";
-import { TopNavContainer } from "./TopNav";
+import { useRedirectToLoginIfUnauthenticated } from "@calcom/web/modules/auth/hooks/useRedirectToLoginIfUnauthenticated";
+import { useRedirectToOnboardingIfNeeded } from "@calcom/web/modules/auth/hooks/useRedirectToOnboardingIfNeeded";
+import { useFormbricks } from "@calcom/web/modules/formbricks/hooks/useFormbricks";
+import TimezoneChangeDialog from "@calcom/web/modules/settings/components/TimezoneChangeDialog";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import type React from "react";
+import type { Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
+import { cloneElement } from "react";
+import { Toaster } from "sonner";
 import { BannerContainer } from "./banners/LayoutBanner";
 import { useBanners } from "./banners/useBanners";
+import { DynamicModals } from "./DynamicModals";
+import { KBarContent, KBarRoot } from "./Kbar";
+import { useNexusShell } from "./NexusShell";
 import { MobileNavigationContainer } from "./navigation/Navigation";
+import { SideBarContainer } from "./SideBar";
+import { TopNavContainer } from "./TopNav";
 import { useAppTheme } from "./useAppTheme";
 
 const Layout = (props: LayoutProps) => {
+  const nexus = useNexusShell();
   const { banners, bannersHeight } = useBanners();
 
   useFormbricks();
@@ -39,17 +38,18 @@ const Layout = (props: LayoutProps) => {
       </div>
 
       <TimezoneChangeDialog />
-      <DynamicModals />
+      {!nexus && <DynamicModals />}
 
       <div className="flex min-h-screen flex-col">
-        {banners && <BannerContainer banners={banners} />}
+        {!nexus && banners && <BannerContainer banners={banners} />}
 
         <div className="flex flex-1" data-testid="dashboard-shell">
-          {props.SidebarContainer ? (
-            cloneElement(props.SidebarContainer, { bannersHeight })
-          ) : (
-            <SideBarContainer bannersHeight={bannersHeight} />
-          )}
+          {!nexus &&
+            (props.SidebarContainer ? (
+              cloneElement(props.SidebarContainer, { bannersHeight })
+            ) : (
+              <SideBarContainer bannersHeight={bannersHeight} />
+            ))}
           <div className="flex w-0 flex-1 flex-col">
             <MainContainer {...props} />
           </div>
@@ -101,21 +101,23 @@ const KBarWrapper = ({ children, withKBar = false }: { withKBar: boolean; childr
 
 const PublicShell = (props: LayoutProps) => {
   const { status } = useSession();
+  const nexus = useNexusShell();
   return (
-    <KBarWrapper withKBar={status === "authenticated"}>
+    <KBarWrapper withKBar={!nexus && status === "authenticated"}>
       <Layout {...props} />
     </KBarWrapper>
   );
 };
 
 export default function Shell(props: LayoutProps) {
+  const nexus = useNexusShell();
   // if a page is unauthed and isPublic is true, the redirect does not happen.
   useRedirectToLoginIfUnauthenticated(props.isPublic);
   useRedirectToOnboardingIfNeeded();
   useAppTheme();
 
   return !props.isPublic ? (
-    <KBarWrapper withKBar>
+    <KBarWrapper withKBar={!nexus}>
       <Layout {...props} />
     </KBarWrapper>
   ) : (
@@ -201,16 +203,17 @@ function MainContainer({
   TopNavContainer: TopNavContainerProp = <TopNavContainer />,
   ...props
 }: LayoutProps) {
+  const nexus = useNexusShell();
   return (
     <main className="bg-default relative z-0 flex-1 focus:outline-none">
       {/* show top navigation for md and smaller (tablet and phones) */}
-      {TopNavContainerProp}
+      {!nexus && TopNavContainerProp}
       <div className="max-w-full p-2 sm:p-4 lg:p-6">
         <ErrorBoundary>
           {!props.withoutMain ? <ShellMain {...props}>{props.children}</ShellMain> : props.children}
         </ErrorBoundary>
         {/* show bottom navigation for md and smaller (tablet and phones) on pages where back button doesn't exist */}
-        {!props.backPath ? MobileNavigationContainerProp : null}
+        {!nexus && !props.backPath ? MobileNavigationContainerProp : null}
       </div>
     </main>
   );

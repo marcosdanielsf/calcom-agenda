@@ -1,0 +1,71 @@
+/* Criado: 2026-10-05 23:36 BRT. Tokens da casca V2 aprovada.
+   O marcador vem no HTML renderizado: tema desde o primeiro paint, inclusive em portais. */
+:root:has([data-nexus-shell="true"]) {
+  color-scheme: light;
+  --font-sans: var(--font-nexus), system-ui, sans-serif;
+  --font-cal: var(--font-sans);
+  --font-heading: var(--font-sans);
+  --radius: 8px;
+  --radius-sm: 8px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-cal: 8px;
+  --radius-cal-sm: 8px;
+  --radius-cal-md: 8px;
+  --radius-cal-lg: 8px;
+  --radius-cal-xl: 8px;
+  --cal-bg: #ffffff;
+  --cal-bg-subtle: #f2f7fa;
+  --cal-bg-muted: #f9fafb;
+  --cal-bg-emphasis: #f2f4f7;
+  --cal-bg-inverted: #101828;
+  --cal-text: #101828;
+  --cal-text-emphasis: #101828;
+  --cal-text-subtle: #667085;
+  --cal-text-muted: #667085;
+  --cal-text-inverted: #ffffff;
+  --cal-border: #eaecf0;
+  --cal-border-subtle: #eaecf0;
+  --cal-border-muted: #eaecf0;
+  --cal-border-emphasis: #d0d5dd;
+  /* O tema pessoal existente escreve estas variaveis inline no elemento raiz. */
+  --cal-brand: #155eef !important;
+  --cal-brand-emphasis: #155eef !important;
+  --cal-brand-text: #ffffff !important;
+  --cal-bg-primary: #155eef;
+  --cal-bg-primary-emphasis: #155eef;
+  --cal-bg-primary-muted: #eff4ff;
+  --cal-bg-brand: #155eef;
+  --cal-bg-brand-emphasis: #155eef;
+  --cal-bg-brand-muted: #eff4ff;
+  --background: #ffffff;
+  --foreground: #101828;
+  --card: #ffffff;
+  --card-foreground: #101828;
+  --popover: #ffffff;
+  --popover-foreground: #101828;
+  --primary: #155eef;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f4f7;
+  --secondary-foreground: #101828;
+  --muted: #f9fafb;
+  --muted-foreground: #667085;
+  --accent: #eff4ff;
+  --accent-foreground: #155eef;
+  --border: #eaecf0;
+  --input: #d0d5dd;
+  --ring: #155eef;
+}
+
+:root:has([data-nexus-shell="true"]) body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--cal-text);
+  background: #f2f7fa;
+}
+
+:root:has([data-nexus-shell="true"]) :is(button, input, select, textarea) {
+  font-family: var(--font-sans);
+}
