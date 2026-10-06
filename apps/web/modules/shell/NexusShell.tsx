@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsStandalone } from "@calcom/lib/hooks/useIsStandalone";
 // Criado: 2026-10-05 23:36 BRT. Preferencia visual, nunca autoridade de acesso.
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
@@ -22,17 +23,16 @@ export function NexusShellProvider({
 }) {
   const pathname = usePathname();
   const search = useSearchParams();
+  const isStandalone = useIsStandalone();
   const requested = search?.get("shell");
   const [preference, setPreference] = useState(initialPreference === "nexus");
   const allowed = isNexusShellRoute(pathname);
   // A URL explicita ganha do cookie, inclusive para sair do modo integrado.
-  const active =
-    allowed &&
-    search?.get("standalone") !== "true" &&
-    (requested == null ? preference : requested === "nexus");
+  const active = allowed && !isStandalone && (requested == null ? preference : requested === "nexus");
 
   useEffect(() => {
-    if (!allowed || (requested !== "nexus" && requested !== "standalone")) return;
+    if (requested !== "nexus" && requested !== "standalone") return;
+    if (!allowed && requested === "nexus") return;
     const enabled = requested === "nexus";
     setPreference(enabled);
     try {

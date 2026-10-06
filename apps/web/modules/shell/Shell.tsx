@@ -41,15 +41,14 @@ const Layout = (props: LayoutProps) => {
       {!nexus && <DynamicModals />}
 
       <div className="flex min-h-screen flex-col">
-        {!nexus && banners && <BannerContainer banners={banners} />}
+        {banners && <BannerContainer banners={banners} />}
 
         <div className="flex flex-1" data-testid="dashboard-shell">
-          {!nexus &&
-            (props.SidebarContainer ? (
-              cloneElement(props.SidebarContainer, { bannersHeight })
-            ) : (
-              <SideBarContainer bannersHeight={bannersHeight} />
-            ))}
+          {props.SidebarContainer ? (
+            cloneElement(props.SidebarContainer, { bannersHeight })
+          ) : nexus ? null : (
+            <SideBarContainer bannersHeight={bannersHeight} />
+          )}
           <div className="flex w-0 flex-1 flex-col">
             <MainContainer {...props} />
           </div>

@@ -1,3 +1,4 @@
+// @vitest-environment-options {"url":"https://agenda.socialfy.me"}
 // Criado: 2026-10-05 23:36 BRT.
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -101,9 +102,10 @@ describe("Agenda dentro da casca Nexus", () => {
       </Shell>,
       { wrapper }
     );
-    for (const id of ["sidebar", "topnav", "mobile", "shortcuts", "welcome", "banner"]) {
+    for (const id of ["sidebar", "topnav", "mobile", "shortcuts", "welcome"]) {
       expect(screen.queryByTestId(id)).toBeNull();
     }
+    expect(screen.getByTestId("banner")).toBeTruthy();
     fireEvent.click(screen.getByText("Salvar"));
     expect(save).toHaveBeenCalledOnce();
     expect(screen.getByText("Conteudo")).toBeTruthy();
@@ -156,7 +158,7 @@ describe("Agenda dentro da casca Nexus", () => {
     expect(document.querySelector('[data-nexus-shell="true"]')).toBeNull();
   });
 
-  it("retira tambem navegacao injetada pelas configuracoes", () => {
+  it("mantem navegacao injetada pelas configuracoes", () => {
     state.pathname = "/settings/my-account/profile";
     render(
       <Shell SidebarContainer={<nav>Menu configuracoes</nav>} TopNavContainer={<nav>Topo configuracoes</nav>}>
@@ -164,7 +166,7 @@ describe("Agenda dentro da casca Nexus", () => {
       </Shell>,
       { wrapper }
     );
-    expect(screen.queryByText("Menu configuracoes")).toBeNull();
+    expect(screen.getByText("Menu configuracoes")).toBeTruthy();
     expect(screen.queryByText("Topo configuracoes")).toBeNull();
     expect(screen.getByText("Perfil")).toBeTruthy();
   });
@@ -189,6 +191,17 @@ describe("Agenda dentro da casca Nexus", () => {
       </NexusShellProvider>
     );
     expect(document.querySelector('[data-nexus-shell="true"]')).toBeNull();
+  });
+
+  it("remove a preferencia Nexus fora das rotas cobertas", () => {
+    state.pathname = "/auth/login";
+    state.search = "shell=standalone";
+    render(
+      <NexusShellProvider initialPreference="nexus">
+        <Shell>Conteudo</Shell>
+      </NexusShellProvider>
+    );
+    expect(document.cookie).not.toContain(NEXUS_SHELL_COOKIE);
   });
 
   it("sair do escopo retira o tema e voltar recupera a preferencia", () => {

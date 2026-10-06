@@ -6,7 +6,7 @@ com marca Socialfy e o workflow `.github/workflows/build-image.yml` que constroi
 
 ## Modo visual do Nexus
 
-Atualizado: 2026-10-05 23:46 BRT. Implementacao local, sem deploy ou aceite de produto.
+Atualizado: 2026-10-06 00:48 BRT. Implementacao local, sem deploy ou aceite de produto.
 
 `?shell=nexus` retira sidebar, topo, navegacao inferior, atalhos globais e modal promocional.
 Titulos, filtros, acoes locais, dialog de fuso e guards de autenticacao/onboarding continuam ativos.
@@ -23,7 +23,9 @@ Fora das cinco areas, o modo nao altera a pagina. O cookie e somente visual e nu
 Roboto e carregada pelo `next/font`; o tema claro usa os tokens aprovados de `v2-shell.css`
 do Nexus, corpo 14px/21px e raio 8px. O marcador renderizado no servidor ativa o CSS tambem
 para portais, sem escrita global de estilo em effects. A preferencia escura anterior retorna
-ao sair do modo. O shell Nexus pai ainda precisa coordenar temas escuros em uma fatia futura.
+ao sair do modo. Com `.dark` no elemento `html`, os utilitarios `dark:` continuam ativos e a
+tela pode ficar misturada no tema escuro. Dentro de iframe cross-site, o cookie `SameSite=Lax`
+nao grava; nesse caso, somente a query mantem o modo, inclusive na peca 3.
 
 Arquivos tocados em `apps/web/` estao sob o `LICENSE` MIT da raiz. O inventario Git desta
 base nao contem pasta `ee`; nenhuma area comercial, embed, pagamento ou API de plataforma
@@ -32,7 +34,7 @@ foi importada. Avisos de copyright e licenca ficam preservados na distribuicao.
 Validacao reproduzivel, na raiz deste fork com Node 20 e dependencias instaladas:
 
 ```sh
-node .yarn/releases/yarn-4.12.0.cjs vitest run --config scripts/nexus-shell.vitest.config.mts
+node .yarn/releases/yarn-4.12.0.cjs vitest run apps/web/modules/shell/Shell.nexus.test.tsx
 node scripts/nexus-shell-style-smoke.mjs
 node .yarn/releases/yarn-4.12.0.cjs type-check:ci --force
 ```
@@ -42,7 +44,7 @@ Os testes de componente cobrem servidor, cookie, saida, navegacao, CTAs e rotas 
 o smoke Chromium mede somente a cascata CSS, inclusive portal e restauracao. Nenhum deles
 prova login integrado, dados reais ou produto em `socialfy.me`.
 
-Resultados locais: 21 testes de componente aprovados, smoke de CSS aprovado e typecheck
+Resultados locais: 22 testes de componente aprovados, smoke de CSS aprovado e typecheck
 completo com 9 tarefas aprovadas. Biome sem erros, com 16 avisos de estilo e
 sugestoes informativas. O typecheck revelou mock de cores desatualizado em
 `packages/lib/__mocks__/constants.ts`; os dois valores foram alinhados as constantes
