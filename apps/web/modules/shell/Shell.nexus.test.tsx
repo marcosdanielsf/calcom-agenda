@@ -175,7 +175,8 @@ describe("Agenda dentro da casca Nexus", () => {
       { wrapper }
     );
     expect(screen.getByText("Menu configuracoes")).toBeTruthy();
-    expect(screen.queryByText("Topo configuracoes")).toBeNull();
+    expect(screen.getByText("Topo configuracoes")).toBeTruthy();
+    expect(screen.queryByTestId("topnav")).toBeNull();
     expect(screen.getByText("Perfil")).toBeTruthy();
   });
 
@@ -480,6 +481,8 @@ describe("Agenda dentro da casca Nexus", () => {
   it("remove a preferencia Nexus fora das rotas cobertas", () => {
     state.pathname = "/auth/login";
     state.search = "shell=standalone";
+    document.cookie = `${NEXUS_SHELL_COOKIE}=nexus; Path=/`;
+    expect(document.cookie).toContain(`${NEXUS_SHELL_COOKIE}=nexus`);
     render(
       <NexusShellProvider initialPreference="nexus">
         <Shell>Conteudo</Shell>

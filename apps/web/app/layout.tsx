@@ -1,5 +1,4 @@
 import { getLocale } from "@calcom/features/auth/lib/getLocale";
-// Atualizado: 2026-10-06 10:12 BRT. Tema SSR do modo Nexus nasce antes do app e dos portais.
 import { loadTranslations } from "@calcom/i18n/server";
 import { IconSprites } from "@calcom/ui/components/icon";
 import { buildLegacyRequest } from "@lib/buildLegacyCtx";
@@ -11,7 +10,6 @@ import type React from "react";
 
 import "../styles/globals.css";
 import "../styles/nexus-shell.css";
-import process from "node:process";
 import { NexusShellProvider } from "../modules/shell/NexusShell";
 import { NEXUS_THEME_BOOT_SCRIPT, resolveLocalThemeMessageOrigin } from "../modules/shell/nexusThemeOrigin";
 import { AppRouterI18nProvider } from "./AppRouterI18nProvider";
@@ -132,8 +130,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
         <style>{`
           :root {
-            --font-sans: ${interFont.style.fontFamily.replace(/'/g, "")}, system-ui;
-            --font-cal: ${calFont.style.fontFamily.replace(/'/g, "")};
+            --font-sans: ${interFont.style.fontFamily.replace(/\'/g, "")}, system-ui;
+            --font-cal: ${calFont.style.fontFamily.replace(/\'/g, "")};
             --font-nexus: ${nexusFont.style.fontFamily};
           }
         `}</style>
@@ -172,7 +170,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <IconSprites />
           <SpeculationRules
             // URLs In Navigation
-            prerenderPathsOnHover={["/event-types", "/availability", "/bookings/upcoming", "/teams", "/apps"]}
+            prerenderPathsOnHover={[
+              "/event-types",
+              "/availability",
+              "/bookings/upcoming",
+              "/teams",
+              "/apps",
+            ]}
           />
 
           <Providers isEmbed={isEmbed} nonce={nonce} country={country}>

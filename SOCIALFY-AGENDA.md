@@ -66,6 +66,20 @@ O typecheck completo aprovou 9 tarefas antes do ultimo ajuste de precedencia; o 
 reexecutado antes do commit local. Biome ficou sem erros; avisos informativos de regras nursery
 e `!important` preservam comportamento preexistente contra variaveis inline.
 
+## Limites conhecidos do modo integrado
+
+- **Cookie dentro de iframe.** Em iframe de outro site o navegador nao grava o cookie `SameSite=Lax`.
+  Nesse caso so a query (`?shell=nexus`) mantem o modo, entao a tela embutida precisa carregar com ela
+  em toda navegacao inicial. Fora de iframe o cookie guarda a preferencia por 24 horas.
+- **Origem do pai fixa.** A origem que pode mandar o tema por `postMessage` esta fixa em
+  `https://nexus.socialfy.me` (`NexusShell.tsx`, constante `NEXUS_THEME_PARENT_ORIGIN`). Um dominio
+  white-label nao sincroniza o tema por mensagem: ele cai na query `theme` ou no cookie.
+- **Tema escuro e `color-scheme`.** O Nexus fixa `color-scheme` claro na pagina que contem o iframe.
+  Com o tema escuro, o navegador pinta o fundo do iframe opaco em vez de transparente, entao o
+  conteudo escuro nao deixa ver o fundo da pagina pai.
+- **Topo mobile de Configuracoes.** No modo integrado some apenas o topo padrao. O topo injetado por
+  Configuracoes fica, porque abaixo de 1024 px ele e o unico botao que abre o menu interno.
+
 SSO, abas no Nexus e projecao de reservas no CRM sao proximas pecas do plano
 `docs/plans/2026-10-05-2305-agenda-modulo-nativo.md` no repositorio Nexus. A prova de produto
 fica para dominio Socialfy apos deploy autorizado pelo Marcos. Rollback visual: remover
