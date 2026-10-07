@@ -28,6 +28,7 @@ jobs:
           tags: |
             ghcr.io/marcosdanielsf/calcom-agenda:b3321936
             ghcr.io/marcosdanielsf/calcom-agenda:latest
+            ghcr.io/marcosdanielsf/calcom-agenda:${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_WEBAPP_URL=https://agenda.socialfy.me
             NEXT_PUBLIC_LICENSE_CONSENT=true
@@ -39,6 +40,6 @@ jobs:
             NEXT_PUBLIC_APP_NAME=Socialfy Agenda
             NEXT_PUBLIC_COMPANY_NAME=Socialfy
             NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS=suporte@socialfy.me
-            NEXT_PUBLIC_DISABLE_SIGNUP=1
+            NEXT_PUBLIC_DISABLE_SIGNUP=true
           cache-from: type=gha
           cache-to: type=gha,mode=max

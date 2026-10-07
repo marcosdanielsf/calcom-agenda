@@ -84,3 +84,25 @@ SSO, abas no Nexus e projecao de reservas no CRM sao proximas pecas do plano
 `docs/plans/2026-10-05-2305-agenda-modulo-nativo.md` no repositorio Nexus. A prova de produto
 fica para dominio Socialfy apos deploy autorizado pelo Marcos. Rollback visual: remover
 o parametro e o cookie ou usar `?shell=standalone`; nao ha migration nesta entrega.
+
+## Login unico
+
+Atualizado: 2026-10-06 BRT. Receptor do login unico Nexus para Agenda (`POST /api/nexus/sso`).
+Contrato dos dois lados: `docs/contracts/nexus-agenda-sso-v1.md` no repo do Nexus.
+
+O Nexus assina um token Ed25519 de ate 60 s e o navegador o posta num formulario
+(`token`, `dest`, `theme`). A Agenda confere `Origin`, assinatura, `iss`, `aud`, validade e
+`jti` de uso unico (`VerificationToken` com `identifier = nexus-sso`), vincula ou cria a conta
+(`Account` com `provider = nexus`, `providerAccountId = sub`; email igual ao de conta nao
+vinculada e 409, nunca vincula por email) e responde 303 com o cookie de sessao do motor (8 h).
+
+Envs do runtime da Agenda:
+
+- `NEXUS_AGENDA_SSO_PUBLIC_KEY`: PEM spki da chave publica, multilinha ou numa linha so com
+  `\n` literal. Sem ela a rota responde 503 `agenda_sso_unavailable`.
+- `NEXUS_AGENDA_LOCAL_PARENT_ORIGIN`: origem loopback exata aceita no `Origin`, so fora de producao.
+- `NEXTAUTH_SECRET` (ja existente): segredo que assina o cookie de sessao.
+
+Fora da v1: logout conjunto (sair do Nexus nao derruba a sessao da Agenda antes das 8 h) e troca
+de conta do Nexus no mesmo navegador. O cadastro publico fica fechado no build
+(`NEXT_PUBLIC_DISABLE_SIGNUP=true`).
