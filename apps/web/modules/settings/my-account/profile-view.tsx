@@ -41,6 +41,7 @@ import { useRef, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 import { CompanyEmailOrganizationBanner } from "./components/CompanyEmailOrganizationBanner";
+import { withProfileUsernamePlusHostname } from "./profileUrlHint";
 
 interface DeleteAccountValues {
   totpCode: string;
@@ -650,7 +651,7 @@ const ProfileForm = ({
         {extraField}
         <p className="mt-1 flex gap-1 text-sm text-subtle">
           <InfoIcon className="mt-0.5 shrink-0" />
-          <span className="flex-1">{t("tip_username_plus")}</span>
+          <span className="flex-1">{withProfileUsernamePlusHostname(t("tip_username_plus"))}</span>
         </p>
         <div className="mt-6">
           <TextField label={t("full_name")} {...formMethods.register("name")} />

@@ -1,0 +1,122 @@
+/* Atualizado: 2026-10-06 10:12 BRT. Tokens claro e escuro da casca V2 aprovada.
+   O marcador vem no HTML renderizado: tema desde o primeiro paint, inclusive em portais. */
+:root:has([data-nexus-shell="true"]) {
+  color-scheme: light;
+  --font-sans: var(--font-nexus), system-ui, sans-serif;
+  --font-cal: var(--font-sans);
+  --font-heading: var(--font-sans);
+  --radius: 8px;
+  --radius-sm: 8px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-cal: 8px;
+  --radius-cal-sm: 8px;
+  --radius-cal-md: 8px;
+  --radius-cal-lg: 8px;
+  --radius-cal-xl: 8px;
+  --cal-bg: #ffffff;
+  --cal-bg-subtle: transparent;
+  --cal-bg-muted: #f9fafb;
+  --cal-bg-emphasis: #f2f4f7;
+  --cal-bg-inverted: #101828;
+  --cal-text: #101828;
+  --cal-text-emphasis: #101828;
+  --cal-text-subtle: #667085;
+  --cal-text-muted: #667085;
+  --cal-text-inverted: #ffffff;
+  --cal-border: #eaecf0;
+  --cal-border-subtle: #eaecf0;
+  --cal-border-muted: #eaecf0;
+  --cal-border-emphasis: #d0d5dd;
+  /* O tema pessoal existente escreve estas variaveis inline no elemento raiz. */
+  --cal-brand: #155eef !important;
+  --cal-brand-emphasis: #155eef !important;
+  --cal-brand-text: #ffffff !important;
+  --cal-bg-primary: #155eef;
+  --cal-bg-primary-emphasis: #155eef;
+  --cal-bg-primary-muted: #eff4ff;
+  --cal-bg-brand: #155eef;
+  --cal-bg-brand-emphasis: #155eef;
+  --cal-bg-brand-muted: #eff4ff;
+  --background: transparent;
+  --foreground: #101828;
+  --card: #ffffff;
+  --card-foreground: #101828;
+  --popover: #ffffff;
+  --popover-foreground: #101828;
+  --primary: #155eef;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f4f7;
+  --secondary-foreground: #101828;
+  --muted: #f9fafb;
+  --muted-foreground: #667085;
+  --accent: #eff4ff;
+  --accent-foreground: #155eef;
+  --border: #eaecf0;
+  --input: #d0d5dd;
+  --ring: #155eef;
+  --link: #155eef;
+}
+
+:root:has([data-nexus-shell="true"]) body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--cal-text);
+  background: transparent;
+}
+
+:root:has([data-nexus-shell="true"]) :is(button, input, select, textarea) {
+  font-family: var(--font-sans);
+}
+
+:root:has([data-nexus-shell="true"][data-nexus-theme="dark"]) {
+  color-scheme: dark;
+  --cal-bg: #1e293b;
+  --cal-bg-subtle: transparent;
+  --cal-bg-muted: #273449;
+  --cal-bg-emphasis: #2d3748;
+  --cal-bg-inverted: #f1f5f9;
+  --cal-text: #f1f5f9;
+  --cal-text-emphasis: #f1f5f9;
+  --cal-text-subtle: #94a3b8;
+  --cal-text-muted: #94a3b8;
+  --cal-text-inverted: #0f172a;
+  --cal-border: #334155;
+  --cal-border-subtle: #334155;
+  --cal-border-muted: #334155;
+  --cal-border-emphasis: #475569;
+  --cal-brand: #2563eb !important;
+  --cal-brand-emphasis: #2563eb !important;
+  --cal-brand-text: #ffffff !important;
+  --cal-bg-primary: #2563eb;
+  --cal-bg-primary-emphasis: #2563eb;
+  --cal-bg-primary-muted: rgba(59, 130, 246, 0.16);
+  --cal-bg-brand: #2563eb;
+  --cal-bg-brand-emphasis: #2563eb;
+  --cal-bg-brand-muted: rgba(59, 130, 246, 0.16);
+  --background: transparent;
+  --foreground: #f1f5f9;
+  --card: #1e293b;
+  --card-foreground: #f1f5f9;
+  --popover: #1e293b;
+  --popover-foreground: #f1f5f9;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #273449;
+  --secondary-foreground: #f1f5f9;
+  --muted: #273449;
+  --muted-foreground: #94a3b8;
+  --accent: rgba(59, 130, 246, 0.16);
+  --accent-foreground: #60a5fa;
+  --border: #334155;
+  --input: #475569;
+  --ring: #60a5fa;
+  --link: #60a5fa;
+}
+
+:root:has([data-nexus-shell="true"][data-nexus-theme="dark"]) body {
+  color: #f1f5f9;
+  background: transparent;
+}

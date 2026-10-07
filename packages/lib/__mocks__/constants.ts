@@ -1,3 +1,4 @@
+// Atualizado: 2026-10-05 23:46 BRT. Cores acompanham os tipos literais do tema do fork.
 import { vi, beforeEach } from "vitest";
 
 import type * as constants from "@calcom/lib/constants";
@@ -9,8 +10,8 @@ const initialConstants = {
   PUBLIC_INVALIDATE_AVAILABLE_SLOTS_ON_BOOKING_FORM: true,
   CLOUDFLARE_SITE_ID: "test-site-id",
   CLOUDFLARE_USE_TURNSTILE_IN_BOOKER: "1",
-  DEFAULT_LIGHT_BRAND_COLOR: "#292929",
-  DEFAULT_DARK_BRAND_COLOR: "#fafafa",
+  DEFAULT_LIGHT_BRAND_COLOR: "#2563eb",
+  DEFAULT_DARK_BRAND_COLOR: "#3b82f6",
   CALCOM_VERSION: "0.0.0",
   IS_SELF_HOSTED: false,
   SEO_IMG_DEFAULT: "https://cal.com/og-image.png",
