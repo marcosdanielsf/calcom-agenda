@@ -3,6 +3,9 @@ import { resolveLocalThemeMessageOrigin } from "../../modules/shell/nexusThemeOr
 
 export const NEXUS_SSO_ISSUER = "https://nexus.socialfy.me";
 export const NEXUS_SSO_AUDIENCE = "https://agenda.socialfy.me";
+// Chamada servidor a servidor do Nexus para criar o tipo de agendamento de um servico do
+// catalogo. Destino proprio: o token do login unico nao serve aqui, e este nao serve no login.
+export const NEXUS_EVENT_TYPES_AUDIENCE = `${NEXUS_SSO_AUDIENCE}/api/nexus/event-types`;
 export const NEXUS_SSO_PROVIDER = "nexus";
 export const NEXUS_SSO_JTI_IDENTIFIER = "nexus-sso";
 export const NEXUS_SSO_MAX_TOKEN_TTL_SECONDS = 60;
