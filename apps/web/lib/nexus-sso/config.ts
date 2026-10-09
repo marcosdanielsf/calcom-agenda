@@ -11,21 +11,7 @@ export const NEXUS_SSO_JTI_IDENTIFIER = "nexus-sso";
 export const NEXUS_SSO_MAX_TOKEN_TTL_SECONDS = 60;
 export const NEXUS_SSO_SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 
-const DEST_ROUTES = {
-  "event-types": "/event-types",
-  bookings: "/bookings/upcoming",
-  availability: "/availability",
-  // Integrações do Nexus abre direto nos calendários conectados: a loja de apps mostra nome de fornecedor.
-  apps: "/settings/my-account/calendars",
-  settings: "/settings/my-account/profile",
-} as const;
-
-export type NexusSsoDest = keyof typeof DEST_ROUTES;
-
-export function resolveDestRoute(dest: unknown): string | null {
-  if (typeof dest !== "string" || !Object.hasOwn(DEST_ROUTES, dest)) return null;
-  return DEST_ROUTES[dest as NexusSsoDest];
-}
+export { DEST_ROUTES, type NexusSsoDest, resolveDestRoute } from "./destRoutes";
 
 export function normalizeTheme(theme: unknown): "light" | "dark" {
   return theme === "dark" ? "dark" : "light";

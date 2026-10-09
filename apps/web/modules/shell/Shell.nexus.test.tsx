@@ -14,10 +14,11 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 
 const state = vi.hoisted(() => ({ pathname: "/event-types", search: "shell=nexus" }));
 const guards = vi.hoisted(() => ({ login: vi.fn(), onboarding: vi.fn() }));
+const router = vi.hoisted(() => ({ push: vi.fn(), back: vi.fn() }));
 vi.mock("next/navigation", () => ({
   usePathname: () => state.pathname,
   useSearchParams: () => new URLSearchParams(state.search),
-  useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
+  useRouter: () => router,
 }));
 vi.mock("next-auth/react", () => ({ useSession: () => ({ status: "authenticated" }) }));
 vi.mock("sonner", () => ({ Toaster: () => null }));
@@ -500,5 +501,99 @@ describe("Agenda dentro da casca Nexus", () => {
     state.pathname = "/availability";
     rerender(<Shell>Horarios</Shell>);
     expect(screen.queryByTestId("sidebar")).toBeNull();
+  });
+
+  describe("navegacao sem recarregar", () => {
+    const navigate = (data: unknown, origin = "https://nexus.socialfy.me", source: unknown = window) =>
+      act(() => {
+        window.dispatchEvent(
+          new MessageEvent("message", { origin, source: source as MessageEventSource | null, data })
+        );
+      });
+    const mount = () =>
+      render(
+        <NexusShellProvider initialPreference="nexus" initialTheme="dark">
+          <Shell>Conteudo</Shell>
+        </NexusShellProvider>
+      );
+
+    it("troca a rota mantendo shell e tema quando a mensagem e valida", () => {
+      state.search = "shell=nexus&theme=dark";
+      mount();
+      navigate({ type: "nexus:navigate", dest: "bookings" });
+      expect(router.push).toHaveBeenCalledWith("/bookings/upcoming?shell=nexus&theme=dark");
+      navigate({ type: "nexus:navigate", dest: "settings" });
+      expect(router.push).toHaveBeenLastCalledWith("/settings/my-account/profile?shell=nexus&theme=dark");
+    });
+
+    it("ignora mensagem de origem errada ou que nao veio do pai", () => {
+      state.search = "shell=nexus&theme=dark";
+      mount();
+      navigate({ type: "nexus:navigate", dest: "bookings" }, "https://malicioso.example");
+      navigate({ type: "nexus:navigate", dest: "bookings" }, "https://nexus.socialfy.me", null);
+      expect(router.push).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["dest fora do mapa", { type: "nexus:navigate", dest: "admin" }],
+      ["dest herdado do prototipo", { type: "nexus:navigate", dest: "constructor" }],
+      ["dest que nao e texto", { type: "nexus:navigate", dest: 3 }],
+      ["chave extra", { type: "nexus:navigate", dest: "bookings", url: "https://x.example" }],
+    ])("ignora %s", (_case, data) => {
+      state.search = "shell=nexus&theme=dark";
+      mount();
+      navigate(data);
+      expect(router.push).not.toHaveBeenCalled();
+    });
+
+    it("avisa o pai da aba na carga, depois do theme-ready, e a cada troca de rota", () => {
+      const parentPostMessage = vi.fn();
+      const parentDescriptor = Object.getOwnPropertyDescriptor(window, "parent");
+      Object.defineProperty(window, "parent", { configurable: true, value: { postMessage: parentPostMessage } });
+      try {
+        state.pathname = "/bookings/upcoming";
+        state.search = "shell=nexus&theme=dark";
+        const view = mount();
+        expect(parentPostMessage.mock.calls.map(([m]) => m)).toEqual([
+          { type: "nexus:theme-ready" },
+          { type: "nexus:route", dest: "bookings" },
+        ]);
+        expect(parentPostMessage.mock.calls[1][1]).toBe("https://nexus.socialfy.me");
+
+        state.pathname = "/bookings/past";
+        view.rerender(
+          <NexusShellProvider initialPreference="nexus" initialTheme="dark">
+            <Shell>Conteudo</Shell>
+          </NexusShellProvider>
+        );
+        // Cada troca de pathname avisa, mesmo dentro da mesma aba.
+        expect(parentPostMessage).toHaveBeenCalledTimes(3);
+        expect(parentPostMessage).toHaveBeenLastCalledWith(
+          { type: "nexus:route", dest: "bookings" },
+          "https://nexus.socialfy.me"
+        );
+
+        state.pathname = "/settings/my-account/general";
+        view.rerender(
+          <NexusShellProvider initialPreference="nexus" initialTheme="dark">
+            <Shell>Conteudo</Shell>
+          </NexusShellProvider>
+        );
+        expect(parentPostMessage).toHaveBeenLastCalledWith(
+          { type: "nexus:route", dest: "settings" },
+          "https://nexus.socialfy.me"
+        );
+
+        state.pathname = "/apps";
+        view.rerender(
+          <NexusShellProvider initialPreference="nexus" initialTheme="dark">
+            <Shell>Conteudo</Shell>
+          </NexusShellProvider>
+        );
+        expect(parentPostMessage).toHaveBeenCalledTimes(4);
+      } finally {
+        if (parentDescriptor) Object.defineProperty(window, "parent", parentDescriptor);
+      }
+    });
   });
 });
