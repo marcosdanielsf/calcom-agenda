@@ -138,3 +138,11 @@
 :root:has([data-nexus-shell="true"]) [data-nexus-page-header]:not(:has(button, input, a[href])) {
   display: none;
 }
+
+/* O botao Novo e a busca flutuam a 80 px do fundo em tela estreita (reserva da barra do celular do
+   motor). No Nexus essa barra nao existe e o quadro e estreito so por ser um quadro: volta ao fluxo. */
+:root:has([data-nexus-shell="true"]) [data-nexus-page-header] header > .fixed {
+  position: relative;
+  inset: auto;
+  bottom: auto;
+}
