@@ -255,7 +255,7 @@ describe("POST /api/nexus/sso, sucesso", () => {
       "event-types": "/event-types",
       bookings: "/bookings/upcoming",
       availability: "/availability",
-      apps: "/apps",
+      apps: "/settings/my-account/calendars",
       settings: "/settings/my-account/profile",
     };
     for (const [dest, route] of Object.entries(map)) {

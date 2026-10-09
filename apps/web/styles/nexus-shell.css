@@ -120,3 +120,9 @@
   color: #f1f5f9;
   background: transparent;
 }
+
+/* Estado vazio dentro do Nexus: sem a borda tracejada, que vira mais uma caixa dentro do quadro. */
+:root:has([data-nexus-shell="true"]) [data-testid="empty-screen"] {
+  border-style: solid;
+  border-color: transparent;
+}

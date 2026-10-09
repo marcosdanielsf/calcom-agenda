@@ -15,7 +15,8 @@ const DEST_ROUTES = {
   "event-types": "/event-types",
   bookings: "/bookings/upcoming",
   availability: "/availability",
-  apps: "/apps",
+  // Integrações do Nexus abre direto nos calendários conectados: a loja de apps mostra nome de fornecedor.
+  apps: "/settings/my-account/calendars",
   settings: "/settings/my-account/profile",
 } as const;
 
