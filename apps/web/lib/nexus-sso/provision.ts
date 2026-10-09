@@ -49,8 +49,9 @@ const emailTaken = async (email: string): Promise<boolean> =>
     select: { id: true },
   }));
 
-async function pickUsername(email: string, attempt: number): Promise<string> {
-  const base = slugify(email.split("@")[0] ?? "") || "usuario";
+// O endereco publico (/<username>) sai do nome da pessoa; sem nome, cai na parte do email antes do arroba.
+async function pickUsername(name: string | null, email: string, attempt: number): Promise<string> {
+  const base = slugify(name ?? "") || slugify(email.split("@")[0] ?? "") || "usuario";
   for (let i = attempt; i < attempt + 5; i++) {
     const candidate = i === 0 ? base : `${base}-${randomBytes(3).toString("hex")}`;
     const taken =
@@ -59,6 +60,39 @@ async function pickUsername(email: string, attempt: number): Promise<string> {
     if (!taken) return candidate;
   }
   return `${base}-${randomBytes(6).toString("hex")}`;
+}
+
+export const DEFAULT_EVENT_TYPE = { title: "Reunião de 30 min", slug: "reuniao-30min", length: 30 } as const;
+export const BOOKINGS_V3_FEATURE = "bookings-v3";
+
+// Conta nova ja nasce com um tipo de agendamento para compartilhar e com a lista de reservas nova.
+// Falha aqui nao derruba o login: a conta existe e a pessoa cria o tipo pela tela.
+async function seedNewUser(userId: number): Promise<void> {
+  try {
+    await prisma.eventType.create({
+      data: {
+        title: DEFAULT_EVENT_TYPE.title,
+        slug: DEFAULT_EVENT_TYPE.slug,
+        length: DEFAULT_EVENT_TYPE.length,
+        hidden: false,
+        locations: [],
+        owner: { connect: { id: userId } },
+        users: { connect: { id: userId } },
+      },
+      select: { id: true },
+    });
+  } catch (e) {
+    log.error("nao criou o tipo de agendamento padrao", { userId, error: String(e) });
+  }
+  try {
+    await prisma.userFeatures.upsert({
+      where: { userId_featureId: { userId, featureId: BOOKINGS_V3_FEATURE } },
+      create: { userId, featureId: BOOKINGS_V3_FEATURE, enabled: true, assignedBy: NEXUS_SSO_PROVIDER },
+      update: {},
+    });
+  } catch (e) {
+    log.error("nao ligou a flag de reservas v3", { userId, error: String(e) });
+  }
 }
 
 export async function resolveNexusUser(input: {
@@ -79,7 +113,7 @@ export async function resolveNexusUser(input: {
 
   const userRepository = getUserRepository();
   for (let attempt = 0; attempt < 3; attempt++) {
-    const username = await pickUsername(email, attempt);
+    const username = await pickUsername(input.name, email, attempt);
     try {
       // Criacao aninhada: usuario, horario padrao e Account entram na mesma escrita atomica.
       const created = await userRepository.create({
@@ -98,6 +132,7 @@ export async function resolveNexusUser(input: {
           create: { type: "oauth", provider: NEXUS_SSO_PROVIDER, providerAccountId: input.sub },
         },
       });
+      await seedNewUser(created.id);
       return { id: created.id, email: created.email, name: created.name };
     } catch (e) {
       if (!isUniqueViolation(e)) throw e;
