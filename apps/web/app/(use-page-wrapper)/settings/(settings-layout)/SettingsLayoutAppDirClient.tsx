@@ -24,6 +24,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { ComponentProps } from "react";
 import React, { useEffect, useMemo, useState } from "react";
+import { useNexusShell } from "~/shell/NexusShell";
 import Shell from "~/shell/Shell";
 
 const getTabs = (
@@ -400,6 +401,11 @@ interface SettingsSidebarContainerProps {
   permissions?: SettingsPermissions;
 }
 
+// No modo Nexus a Configuracoes fica enxuta: o login e o acesso vem do Nexus, e conta, senha e chaves
+// de desenvolvedor nao sao da pessoa do outro lado do quadro.
+const NEXUS_HIDDEN_TABS = ["security", "developer"];
+const NEXUS_HIDDEN_CHILDREN = ["push_notifications"];
+
 const SettingsSidebarContainer = ({
   className = "",
   navigationIsOpenedOnMobile,
@@ -409,11 +415,20 @@ const SettingsSidebarContainer = ({
 }: SettingsSidebarContainerProps) => {
   const { t } = useLocale();
 
-  const tabsWithPermissions = useTabs({
+  const nexus = useNexusShell();
+  const allTabs = useTabs({
     isDelegationCredentialEnabled: false,
     isPbacEnabled: false,
     permissions,
   });
+  const tabsWithPermissions = nexus
+    ? allTabs
+        .filter((tab) => !NEXUS_HIDDEN_TABS.includes(tab.name))
+        .map((tab) => ({
+          ...tab,
+          children: tab.children?.filter((child) => !NEXUS_HIDDEN_CHILDREN.includes(child.name)),
+        }))
+    : allTabs;
 
   return (
     <nav
@@ -426,7 +441,7 @@ const SettingsSidebarContainer = ({
           : "-translate-x-full opacity-0 lg:translate-x-0 lg:opacity-100"
       )}
       aria-label={t("settings_navigation")}>
-      <BackButtonInSidebar name={t("back")} />
+      {nexus ? <div className="h-3" /> : <BackButtonInSidebar name={t("back")} />}
       {tabsWithPermissions.map((tab) => {
         return (
           <React.Fragment key={tab.href}>
