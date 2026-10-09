@@ -126,3 +126,15 @@
   border-style: solid;
   border-color: transparent;
 }
+
+/* Pagina de lista dentro do Nexus: o modulo e a aba ja dizem onde a pessoa esta. Some o titulo e a
+   descricao, fica a linha de acoes (buscar, Novo); sem acao nenhuma, a linha inteira some. */
+:root:has([data-nexus-shell="true"]) [data-nexus-page-header] header > div > :is(h3, p) {
+  display: none;
+}
+:root:has([data-nexus-shell="true"]) [data-nexus-page-header] {
+  margin-bottom: 16px;
+}
+:root:has([data-nexus-shell="true"]) [data-nexus-page-header]:not(:has(button, input, a[href])) {
+  display: none;
+}

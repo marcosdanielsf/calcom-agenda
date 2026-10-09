@@ -135,6 +135,7 @@ export function ShellMain(props: LayoutProps) {
     <>
       {(props.heading || !!props.backPath) && (
         <div
+          data-nexus-page-header={props.backPath ? undefined : ""}
           className={classNames(
             "bg-default mb-0 flex items-center md:mb-6 md:mt-0",
             props.smallHeading ? "lg:mb-7" : "lg:mb-8",
