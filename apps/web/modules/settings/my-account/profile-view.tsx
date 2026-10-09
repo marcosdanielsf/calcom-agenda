@@ -31,6 +31,7 @@ import { UsernameAvailabilityField } from "@components/ui/UsernameAvailability";
 import { InfoIcon } from "@coss/ui/icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TRPCClientErrorLike } from "@trpc/client";
+import { useNexusShell } from "~/shell/NexusShell";
 import { revalidateSettingsProfile } from "app/cache/path/settings/my-account";
 // eslint-disable-next-line no-restricted-imports
 import { get, pick } from "lodash";
@@ -68,6 +69,7 @@ type Props = {
 
 const ProfileView = ({ user }: Props) => {
   const { t } = useLocale();
+  const nexus = useNexusShell();
   const utils = trpc.useUtils();
   const session = useSession();
   const { update } = session;
@@ -314,6 +316,8 @@ const ProfileView = ({ user }: Props) => {
         </div>
       )}
 
+      {!nexus && (
+      <>
       <div className="mt-6 rounded-lg rounded-b-none border border-subtle border-b-0 p-6">
         <Label className="mb-0 font-semibold text-base text-red-700">{t("danger_zone")}</Label>
         <p className="text-sm text-subtle">{t("account_deletion_cannot_be_undone")}</p>
@@ -366,6 +370,8 @@ const ProfileView = ({ user }: Props) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </>
+      )}
 
       {/* If changing email, confirm password */}
       <Dialog open={confirmPasswordOpen} onOpenChange={setConfirmPasswordOpen}>

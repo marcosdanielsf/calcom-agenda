@@ -2,9 +2,10 @@
 
 import { useIsStandalone } from "@calcom/lib/hooks/useIsStandalone";
 // Atualizado: 2026-10-06 10:12 BRT. Preferencias visuais, nunca autoridade de acesso.
-import { usePathname, useSearchParams } from "next/navigation";
+import { resolveDestRoute, routeToDest } from "@calcom/web/lib/nexus-sso/destRoutes";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 export const NEXUS_SHELL_COOKIE = "nexus_agenda_shell";
 export const NEXUS_THEME_COOKIE = "nexus_agenda_theme";
@@ -54,6 +55,16 @@ function isThemeMessage(data: unknown): data is { type: "nexus:theme"; theme: Ne
   return message.type === "nexus:theme" && (message.theme === "light" || message.theme === "dark");
 }
 
+function isNavigateMessage(data: unknown): data is { type: "nexus:navigate"; dest: string } {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return false;
+  const prototype = Object.getPrototypeOf(data);
+  if (prototype !== Object.prototype && prototype !== null) return false;
+  const keys = Object.keys(data).sort();
+  if (keys.length !== 2 || keys[0] !== "dest" || keys[1] !== "type") return false;
+  const message = data as Record<string, unknown>;
+  return message.type === "nexus:navigate" && typeof message.dest === "string";
+}
+
 export function isNexusShellRoute(pathname: string | null) {
   return routes.some((route) => pathname === route || pathname?.startsWith(`${route}/`));
 }
@@ -70,6 +81,9 @@ export function NexusShellProvider({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
   const search = useSearchParams();
   const isStandalone = useIsStandalone();
   const requested = search?.get("shell");
@@ -135,6 +149,32 @@ export function NexusShellProvider({
     }
     return () => window.removeEventListener("message", handleThemeMessage);
   }, [active, localThemeMessageOrigin, requestSignature]);
+
+  // Navegacao sem recarregar: o Nexus pede a aba, o motor troca a rota dentro do mesmo documento.
+  useEffect(() => {
+    if (!active) return;
+    const handleNavigateMessage = (event: MessageEvent) => {
+      if (event.source !== window.parent) return;
+      if (event.origin !== NEXUS_THEME_PARENT_ORIGIN && event.origin !== localThemeMessageOrigin) return;
+      if (!isNavigateMessage(event.data)) return;
+      const route = resolveDestRoute(event.data.dest);
+      if (!route) return;
+      routerRef.current.push(`${route}?shell=nexus&theme=${theme}`);
+    };
+    window.addEventListener("message", handleNavigateMessage);
+    return () => window.removeEventListener("message", handleNavigateMessage);
+  }, [active, localThemeMessageOrigin, theme]);
+
+  // O pai acompanha a aba pela rota do quadro; roda tambem na carga, logo depois do theme-ready.
+  useEffect(() => {
+    if (!active || window.parent === window) return;
+    const dest = routeToDest(pathname);
+    if (!dest) return;
+    window.parent.postMessage(
+      { type: "nexus:route", dest },
+      localThemeMessageOrigin ?? NEXUS_THEME_PARENT_ORIGIN
+    );
+  }, [active, pathname, localThemeMessageOrigin]);
 
   return (
     <NexusShellContext.Provider value={active}>

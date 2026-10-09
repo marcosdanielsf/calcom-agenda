@@ -120,3 +120,29 @@
   color: #f1f5f9;
   background: transparent;
 }
+
+/* Estado vazio dentro do Nexus: sem a borda tracejada, que vira mais uma caixa dentro do quadro. */
+:root:has([data-nexus-shell="true"]) [data-testid="empty-screen"] {
+  border-style: solid;
+  border-color: transparent;
+}
+
+/* Pagina de lista dentro do Nexus: o modulo e a aba ja dizem onde a pessoa esta. Some o titulo e a
+   descricao, fica a linha de acoes (buscar, Novo); sem acao nenhuma, a linha inteira some. */
+:root:has([data-nexus-shell="true"]) [data-nexus-page-header] header > div > :is(h3, p) {
+  display: none;
+}
+:root:has([data-nexus-shell="true"]) [data-nexus-page-header] {
+  margin-bottom: 16px;
+}
+:root:has([data-nexus-shell="true"]) [data-nexus-page-header]:not(:has(button, input, a[href])) {
+  display: none;
+}
+
+/* O botao Novo e a busca flutuam a 80 px do fundo em tela estreita (reserva da barra do celular do
+   motor). No Nexus essa barra nao existe e o quadro e estreito so por ser um quadro: volta ao fluxo. */
+:root:has([data-nexus-shell="true"]) [data-nexus-page-header] header > .fixed {
+  position: relative;
+  inset: auto;
+  bottom: auto;
+}
