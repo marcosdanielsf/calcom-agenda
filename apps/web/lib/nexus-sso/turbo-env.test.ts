@@ -19,12 +19,14 @@ describe("envs do login unico no turbo", () => {
   it("toda process.env.NEXUS_* lida pelo login unico esta no globalEnv do turbo.json", () => {
     const used = new Set<string>();
     for (const file of ROOTS.flatMap(sources)) {
-      for (const match of readFileSync(file, "utf8").matchAll(/process\.env\.(NEXUS_[A-Z0-9_]+)/g)) {
+      for (const match of Array.from(
+        readFileSync(file, "utf8").matchAll(/process\.env\.(NEXUS_[A-Z0-9_]+)/g)
+      )) {
         used.add(match[1]);
       }
     }
     expect(used.size).toBeGreaterThan(0);
     const globalEnv: string[] = JSON.parse(readFileSync("turbo.json", "utf8")).globalEnv;
-    expect([...used].filter((name) => !globalEnv.includes(name))).toEqual([]);
+    expect(Array.from(used).filter((name) => !globalEnv.includes(name))).toEqual([]);
   });
 });
