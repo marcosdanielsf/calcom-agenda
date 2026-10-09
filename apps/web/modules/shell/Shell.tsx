@@ -213,7 +213,7 @@ function MainContainer({
     <main className="bg-default relative z-0 flex-1 focus:outline-none">
       {/* show top navigation for md and smaller (tablet and phones) */}
       {topNav}
-      <div className="max-w-full p-2 sm:p-4 lg:p-6">
+      <div className={classNames("max-w-full", nexus ? "p-3 sm:p-6" : "p-2 sm:p-4 lg:p-6")}>
         <ErrorBoundary>
           {!props.withoutMain ? <ShellMain {...props}>{props.children}</ShellMain> : props.children}
         </ErrorBoundary>
