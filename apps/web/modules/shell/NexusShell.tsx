@@ -170,7 +170,10 @@ export function NexusShellProvider({
     if (!active || window.parent === window) return;
     const dest = routeToDest(pathname);
     if (!dest) return;
-    window.parent.postMessage({ type: "nexus:route", dest }, localThemeMessageOrigin ?? NEXUS_THEME_PARENT_ORIGIN);
+    window.parent.postMessage(
+      { type: "nexus:route", dest },
+      localThemeMessageOrigin ?? NEXUS_THEME_PARENT_ORIGIN
+    );
   }, [active, pathname, localThemeMessageOrigin]);
 
   return (

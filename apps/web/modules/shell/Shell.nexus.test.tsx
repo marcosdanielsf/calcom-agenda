@@ -549,7 +549,10 @@ describe("Agenda dentro da casca Nexus", () => {
     it("avisa o pai da aba na carga, depois do theme-ready, e a cada troca de rota", () => {
       const parentPostMessage = vi.fn();
       const parentDescriptor = Object.getOwnPropertyDescriptor(window, "parent");
-      Object.defineProperty(window, "parent", { configurable: true, value: { postMessage: parentPostMessage } });
+      Object.defineProperty(window, "parent", {
+        configurable: true,
+        value: { postMessage: parentPostMessage },
+      });
       try {
         state.pathname = "/bookings/upcoming";
         state.search = "shell=nexus&theme=dark";
