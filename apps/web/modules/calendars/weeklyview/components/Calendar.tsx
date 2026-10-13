@@ -3,6 +3,7 @@ import {
   createCalendarStore,
   useCalendarStore,
 } from "@calcom/features/calendars/weeklyview/state/store";
+import { useLocale } from "@calcom/lib/hooks/useLocale";
 import classNames from "@calcom/ui/classNames";
 import type React from "react";
 import { useEffect, useMemo, useRef } from "react";
@@ -19,7 +20,9 @@ import { HorizontalLines } from "./horizontalLines";
 import { Spinner } from "./spinner/Spinner";
 import { VerticalLines } from "./verticalLines";
 
-function CalendarInner(props: CalendarComponentProps) {
+type CalendarProps = CalendarComponentProps & { mobileSupported?: boolean };
+
+function CalendarInner(props: CalendarProps) {
   const container = useRef<HTMLDivElement | null>(null);
   const containerNav = useRef<HTMLDivElement | null>(null);
   const containerOffset = useRef<HTMLDivElement | null>(null);
@@ -55,7 +58,7 @@ function CalendarInner(props: CalendarComponentProps) {
   }, [props, initialState]);
 
   return (
-    <MobileNotSupported>
+    <MobileNotSupported mobileSupported={props.mobileSupported}>
       <div
         className={classNames("scheduler-wrapper flex h-full w-full flex-col")}
         style={
@@ -180,7 +183,7 @@ function CalendarInner(props: CalendarComponentProps) {
   );
 }
 
-export function Calendar(props: CalendarComponentProps) {
+export function Calendar(props: CalendarProps) {
   const storeRef = useRef<ReturnType<typeof createCalendarStore> | null>(null);
 
   if (!storeRef.current) {
@@ -202,12 +205,22 @@ export function Calendar(props: CalendarComponentProps) {
 }
 
 /** @todo Will be removed once we have mobile support */
-const MobileNotSupported = ({ children }: { children: React.ReactNode }) => {
+const MobileNotSupported = ({
+  children,
+  mobileSupported = false,
+}: {
+  children: React.ReactNode;
+  mobileSupported?: boolean;
+}) => {
+  const { t } = useLocale();
+  if (mobileSupported) {
+    return <div className="h-full">{children}</div>;
+  }
   return (
     <>
       <div className="flex h-full flex-col items-center justify-center sm:hidden">
-        <h1 className="text-2xl font-bold">Mobile not supported yet </h1>
-        <p className="text-subtle">Please use a desktop browser to view this page</p>
+        <h1 className="text-2xl font-bold">{t("calendar_mobile_not_supported_title")}</h1>
+        <p className="text-subtle">{t("calendar_mobile_not_supported_description")}</p>
       </div>
       <div className="hidden h-full sm:block">{children}</div>
     </>

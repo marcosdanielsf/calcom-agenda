@@ -4781,5 +4781,13 @@
   "agenda_reservation_check": "Check booking",
   "agenda_reservation_resume": "Resume form",
   "agenda_reservation_choose_slot": "Choose another time",
+  "agenda_range_day": "Day",
+  "agenda_range_week": "Week",
+  "agenda_range_month": "Month",
+  "agenda_range_label": "Calendar period",
+  "agenda_view_previous_day": "View previous day",
+  "agenda_view_next_day": "View next day",
+  "calendar_mobile_not_supported_title": "Mobile not supported yet",
+  "calendar_mobile_not_supported_description": "Please use a desktop browser to view this page",
   "ADD_NEW_STRINGS_ABOVE_THIS_LINE_TO_PREVENT_MERGE_CONFLICTS": "↑↑↑↑↑↑↑↑↑↑↑↑↑ Add your new strings above here ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑"
 }

@@ -1,12 +1,12 @@
 "use client";
 
-import dayjs from "@calcom/dayjs";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
 import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
 import { Alert } from "@calcom/ui/components/alert";
 import { Button } from "@calcom/ui/components/button";
 import { ButtonGroup } from "@calcom/ui/components/buttonGroup";
+import { ToggleGroup } from "@calcom/ui/components/form";
 import { ChevronLeftIcon, ChevronRightIcon } from "@coss/ui/icons";
 import { getCoreRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import React, { useEffect, useMemo } from "react";
@@ -14,15 +14,22 @@ import { useBookingCalendarData } from "~/bookings/hooks/useBookingCalendarData"
 import { useBookingFilters } from "~/bookings/hooks/useBookingFilters";
 import { useCalendarAllowedFilters } from "~/bookings/hooks/useCalendarAllowedFilters";
 import { useCalendarAutoSelector } from "~/bookings/hooks/useCalendarAutoSelector";
-import { useCurrentWeekStart } from "~/bookings/hooks/useCurrentWeekStart";
+import { useCalendarRange } from "~/bookings/hooks/useCalendarRange";
 import { useFacetedUniqueValues } from "~/bookings/hooks/useFacetedUniqueValues";
 import { DataTableFilters } from "~/data-table/components/filters";
 import { buildFilterColumns, getFilterColumnVisibility } from "../columns/filterColumns";
-import { getWeekStart } from "../lib/weekUtils";
+import {
+  CALENDAR_RANGES,
+  type CalendarRange,
+  formatRangeLabel,
+  getFetchEndDate,
+  shiftAnchor,
+} from "../lib/calendarRange";
 import { BookingDetailsSheetStoreProvider } from "../store/bookingDetailsSheetStore";
 import type { BookingListingStatus, BookingsGetOutput, RowData } from "../types";
 import { BookingCalendarView } from "./BookingCalendarView";
 import { BookingDetailsSheet } from "./BookingDetailsSheet";
+import { BookingMonthView } from "./BookingMonthView";
 import { ViewToggleButton } from "./ViewToggleButton";
 import { WeekPicker } from "./WeekPicker";
 
@@ -37,7 +44,10 @@ interface BookingCalendarContainerProps {
   bookingsV3Enabled: boolean;
 }
 
+type CalendarRangeState = ReturnType<typeof useCalendarRange>;
+
 interface BookingCalendarInnerProps extends BookingCalendarContainerProps {
+  calendarRange: CalendarRangeState;
   data?: {
     bookings: BookingsGetOutput["bookings"];
     recurringInfo: BookingsGetOutput["recurringInfo"];
@@ -56,6 +66,7 @@ function BookingCalendarInner({
   status,
   permissions,
   bookingsV3Enabled,
+  calendarRange,
   data,
   allowedFilterIds,
   hasError,
@@ -64,9 +75,9 @@ function BookingCalendarInner({
   isFetched,
   isFetchingNextPage,
 }: BookingCalendarInnerProps) {
-  const { t } = useLocale();
+  const { t, i18n } = useLocale();
   const user = useMeQuery().data;
-  const { currentWeekStart, setCurrentWeekStart, userWeekStart } = useCurrentWeekStart();
+  const { range, setRange, anchor, setAnchor, window: rangeWindow, userWeekStart } = calendarRange;
 
   const rowData = useBookingCalendarData({ data, status });
 
@@ -80,17 +91,26 @@ function BookingCalendarInner({
   // Handle auto-selection for calendar view
   useCalendarAutoSelector(bookings, hasNextPage, isFetched, isFetchingNextPage);
 
-  const goToPreviousWeek = () => {
-    setCurrentWeekStart(currentWeekStart.subtract(1, "week"));
-  };
+  const goToPrevious = () => setAnchor(shiftAnchor(range, anchor, -1));
+  const goToNext = () => setAnchor(shiftAnchor(range, anchor, 1));
+  const goToToday = () => setAnchor(null);
 
-  const goToNextWeek = () => {
-    setCurrentWeekStart(currentWeekStart.add(1, "week"));
+  const previousLabel = {
+    day: t("agenda_view_previous_day"),
+    week: t("view_previous_week"),
+    month: t("view_previous_month"),
+  }[range];
+  const nextLabel = {
+    day: t("agenda_view_next_day"),
+    week: t("view_next_week"),
+    month: t("view_next_month"),
+  }[range];
+  const rangeLabels: Record<CalendarRange, string> = {
+    day: t("agenda_range_day"),
+    week: t("agenda_range_week"),
+    month: t("agenda_range_month"),
   };
-
-  const goToToday = () => {
-    setCurrentWeekStart(getWeekStart(dayjs(), userWeekStart));
-  };
+  const periodLabel = formatRangeLabel(range, rangeWindow, anchor, i18n.language);
 
   const ErrorView = errorMessage ? (
     <Alert severity="error" title={t("something_went_wrong")} message={errorMessage} />
@@ -119,27 +139,39 @@ function BookingCalendarInner({
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <WeekPicker
-            currentWeekStart={currentWeekStart}
-            userWeekStart={userWeekStart}
-            onDateChange={setCurrentWeekStart}
-          />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <WeekPicker anchor={anchor} label={periodLabel} onDateChange={setAnchor} />
           {allowedFilterIds.length > 0 && <DataTableFilters.FilterBar table={table} />}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button color="secondary" onClick={goToToday} className="capitalize">
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            data-testid="booking-range-toggle"
+            className="[&_button]:min-h-10 [&_button]:min-w-10"
+            aria-label={t("agenda_range_label")}>
+            <ToggleGroup
+              value={range}
+              onValueChange={(value: CalendarRange) => {
+                if (value) setRange(value);
+              }}
+              options={CALENDAR_RANGES.map((value) => ({
+                value,
+                label: rangeLabels[value],
+                dataTestId: `booking-range-${value}`,
+              }))}
+            />
+          </div>
+          <Button color="secondary" onClick={goToToday} className="min-h-10 capitalize">
             {t("today")}
           </Button>
           <ButtonGroup combined>
-            <Button color="secondary" onClick={goToPreviousWeek}>
-              <span className="sr-only">{t("view_previous_week")}</span>
+            <Button color="secondary" onClick={goToPrevious} className="min-h-10 min-w-10">
+              <span className="sr-only">{previousLabel}</span>
               <ChevronLeftIcon className="h-4 w-4" />
             </Button>
-            <Button color="secondary" onClick={goToNextWeek}>
-              <span className="sr-only">{t("view_next_week")}</span>
+            <Button color="secondary" onClick={goToNext} className="min-h-10 min-w-10">
+              <span className="sr-only">{nextLabel}</span>
               <ChevronRightIcon className="h-4 w-4" />
             </Button>
           </ButtonGroup>
@@ -148,11 +180,21 @@ function BookingCalendarInner({
       </div>
       {hasError && ErrorView ? (
         ErrorView
+      ) : range === "month" ? (
+        <BookingMonthView
+          bookings={bookings}
+          anchor={anchor}
+          weekStart={userWeekStart}
+          onDayClick={(day) => {
+            setRange("week");
+            setAnchor(day);
+          }}
+        />
       ) : (
         <BookingCalendarView
           bookings={bookings}
-          currentWeekStart={currentWeekStart}
-          onWeekStartChange={setCurrentWeekStart}
+          rangeStart={rangeWindow.start}
+          dayCount={range === "day" ? 1 : 7}
         />
       )}
 
@@ -168,8 +210,9 @@ function BookingCalendarInner({
 
 export function BookingCalendarContainer(props: BookingCalendarContainerProps) {
   const { canReadOthersBookings } = props.permissions;
-  const { userIds } = useBookingFilters();
-  const { currentWeekStart, setCurrentWeekStart, userWeekStart } = useCurrentWeekStart();
+  const { userIds, eventTypeIds } = useBookingFilters();
+  const calendarRange = useCalendarRange();
+  const { start: windowStart, end: windowEnd } = calendarRange.window;
 
   const allowedFilterIds = useCalendarAllowedFilters({
     canReadOthersBookings,
@@ -181,9 +224,10 @@ export function BookingCalendarContainer(props: BookingCalendarContainerProps) {
       filters: {
         statuses: STATUSES,
         userIds,
-        // Always fetch only the current week for calendar view
-        afterStartDate: currentWeekStart.startOf("day").toISOString(),
-        beforeEndDate: currentWeekStart.add(6, "day").endOf("day").toISOString(),
+        eventTypeIds,
+        // Only the visible window (day, week or month grid) is fetched
+        afterStartDate: windowStart.toISOString(),
+        beforeEndDate: getFetchEndDate(windowEnd),
       },
     },
     {
@@ -220,19 +264,11 @@ export function BookingCalendarContainer(props: BookingCalendarContainerProps) {
 
   const bookings = useMemo(() => data?.bookings ?? [], [data?.bookings]);
 
-  // Create navigation capabilities for calendar view
-  // This hook handles probe queries and prefetching internally
-  // const capabilities = useCalendarNavigationCapabilities({
-  //   currentWeekStart,
-  //   setCurrentWeekStart,
-  //   userWeekStart,
-  //   filters: { statuses: STATUSES, userIds },
-  // });
-
   return (
     <BookingDetailsSheetStoreProvider bookings={bookings}>
       <BookingCalendarInner
         {...props}
+        calendarRange={calendarRange}
         data={data}
         allowedFilterIds={allowedFilterIds}
         isPending={query.isPending}
