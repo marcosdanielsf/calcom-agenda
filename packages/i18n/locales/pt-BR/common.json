@@ -2227,6 +2227,8 @@
   "saml_sp_acs_url_copied": "URL do ACS copiada!",
   "saml_sp_entity_id_copied": "ID da Entidade SP copiada!",
   "add_calendar": "Adicionar calendário",
+  "connect_your_first_calendar": "Conectar seu primeiro calendário",
+  "nexus_app_description_google_calendar": "Conecte sua conta do Google para a Agenda ver seus horários ocupados, evitar reserva em conflito e criar o evento de cada reserva no seu calendário.",
   "limit_future_bookings": "Limitar reservas futuras",
   "limit_future_bookings_description": "Limite quão longe no futuro este evento pode ser reservado. <0>Saiba mais</0>",
   "no_event_types": "Nenhuma configuração de tipo de evento",

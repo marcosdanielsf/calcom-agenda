@@ -1,7 +1,6 @@
 // Criado: 2026-10-12 BRT. Instalar app dentro do quadro do Nexus nao pode navegar o iframe para o
 // provedor de OAuth: o Google recusa a tela de consentimento dentro de iframe (pagina 403).
 import { describe, expect, it, vi } from "vitest";
-
 import {
   INSTALL_CONTINUE_IN_NEW_TAB_MESSAGE,
   INSTALL_POPUP_BLOCKED_MESSAGE,
@@ -11,13 +10,7 @@ import {
 
 const GOOGLE_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=x";
 
-function fakeWindow({
-  framed,
-  opened = {},
-}: {
-  framed: boolean;
-  opened?: unknown;
-}) {
+function fakeWindow({ framed, opened = {} }: { framed: boolean; opened?: unknown }) {
   const win = {
     location: { href: "https://agenda.socialfy.me/apps/google-calendar" },
     open: vi.fn(() => opened),
@@ -54,9 +47,7 @@ describe("navigateToInstallUrl", () => {
       newTab: undefined,
     });
     expect(win.open).toHaveBeenCalledWith(GOOGLE_URL, "_blank");
-    expect(win.location.href).toBe(
-      "https://agenda.socialfy.me/apps/google-calendar"
-    );
+    expect(win.location.href).toBe("https://agenda.socialfy.me/apps/google-calendar");
     expect(result.message).toEqual(expect.stringContaining("aba"));
     expect(result).toStrictEqual({ openedInNewTab: true, message: INSTALL_CONTINUE_IN_NEW_TAB_MESSAGE });
   });
@@ -69,21 +60,15 @@ describe("navigateToInstallUrl", () => {
         newTab: undefined,
       })
     ).toThrow(INSTALL_POPUP_BLOCKED_MESSAGE);
-    expect(win.location.href).toBe(
-      "https://agenda.socialfy.me/apps/google-calendar"
-    );
+    expect(win.location.href).toBe("https://agenda.socialfy.me/apps/google-calendar");
   });
 
   it("dentro do quadro, URL interna continua navegando no proprio quadro", () => {
     const win = fakeWindow({ framed: true });
-    const result = navigateToInstallUrl(
-      win,
-      "/apps/installation/event-types?slug=x",
-      {
-        external: false,
-        newTab: undefined,
-      }
-    );
+    const result = navigateToInstallUrl(win, "/apps/installation/event-types?slug=x", {
+      external: false,
+      newTab: undefined,
+    });
     expect(win.open).not.toHaveBeenCalled();
     expect(win.location.href).toBe("/apps/installation/event-types?slug=x");
     expect(result).toEqual({ openedInNewTab: false });
