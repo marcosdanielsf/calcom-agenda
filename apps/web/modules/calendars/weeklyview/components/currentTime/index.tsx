@@ -70,7 +70,7 @@ export function CurrentTime({
     <div
       ref={currentTimeRef}
       data-testid="calendar-current-time"
-      className="absolute top-0 z-40 flex h-px items-center justify-center text-xs"
+      className="absolute inset-x-0 top-0 z-40 flex h-px items-center text-xs"
       aria-hidden="true"
       style={{
         top: `calc(${currentTimePos}*var(--one-minute-height) + var(--calendar-offset-top))`,
@@ -78,7 +78,8 @@ export function CurrentTime({
       }}>
       <div className="w-16 pr-2 text-right">{dayjs().tz(timezone).format(timeFormat)}</div>
       <div className="bg-inverted h-3 w-px" />
-      <div className="bg-inverted h-px w-screen" />
+      {/* Linha até a borda da grade: w-screen vazava a grade e criava rolagem lateral na visão de reservas */}
+      <div className="bg-inverted h-px flex-1" />
     </div>
   );
 }

@@ -76,7 +76,7 @@ export function DateValues({ showBorder, borderColor, days, containerNavRef }: P
           );
         })}
       </div>
-      <div className="text-subtle -mr-px hidden auto-cols-fr leading-6 sm:flex">
+      <div className="text-subtle hidden auto-cols-fr leading-6 sm:flex">
         <div
           className={classNames(
             "col-end-1 flex w-16 items-center justify-center",
