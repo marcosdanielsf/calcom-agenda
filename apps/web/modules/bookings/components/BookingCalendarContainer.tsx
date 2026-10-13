@@ -6,7 +6,7 @@ import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
 import { Alert } from "@calcom/ui/components/alert";
 import { Button } from "@calcom/ui/components/button";
 import { ButtonGroup } from "@calcom/ui/components/buttonGroup";
-import { ToggleGroup } from "@calcom/ui/components/form";
+import { ToggleGroup } from "@calcom/ui/components/form/toggleGroup/ToggleGroup";
 import { ChevronLeftIcon, ChevronRightIcon } from "@coss/ui/icons";
 import { getCoreRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import React, { useEffect, useMemo } from "react";
@@ -18,7 +18,13 @@ import { useCalendarRange } from "~/bookings/hooks/useCalendarRange";
 import { useFacetedUniqueValues } from "~/bookings/hooks/useFacetedUniqueValues";
 import { DataTableFilters } from "~/data-table/components/filters";
 import { buildFilterColumns, getFilterColumnVisibility } from "../columns/filterColumns";
-import { CALENDAR_RANGES, type CalendarRange, formatRangeLabel, shiftAnchor } from "../lib/calendarRange";
+import {
+  CALENDAR_RANGES,
+  type CalendarRange,
+  formatRangeLabel,
+  getFetchEndDate,
+  shiftAnchor,
+} from "../lib/calendarRange";
 import { BookingDetailsSheetStoreProvider } from "../store/bookingDetailsSheetStore";
 import type { BookingListingStatus, BookingsGetOutput, RowData } from "../types";
 import { BookingCalendarView } from "./BookingCalendarView";
@@ -140,7 +146,10 @@ function BookingCalendarInner({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div data-testid="booking-range-toggle" aria-label={t("agenda_range_label")}>
+          <div
+            data-testid="booking-range-toggle"
+            className="[&_button]:min-h-10 [&_button]:min-w-10"
+            aria-label={t("agenda_range_label")}>
             <ToggleGroup
               value={range}
               onValueChange={(value: CalendarRange) => {
@@ -218,7 +227,7 @@ export function BookingCalendarContainer(props: BookingCalendarContainerProps) {
         eventTypeIds,
         // Only the visible window (day, week or month grid) is fetched
         afterStartDate: windowStart.toISOString(),
-        beforeEndDate: windowEnd.toISOString(),
+        beforeEndDate: getFetchEndDate(windowEnd),
       },
     },
     {

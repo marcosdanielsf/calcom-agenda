@@ -1,7 +1,6 @@
 "use client";
 
 import dayjs from "@calcom/dayjs";
-import { useTimePreferences } from "@calcom/features/bookings/lib";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import classNames from "@calcom/ui/classNames";
 import { useMemo } from "react";
@@ -19,7 +18,8 @@ const MAX_TITLES = 2;
 
 export function BookingMonthView({ bookings, anchor, weekStart, onDayClick }: BookingMonthViewProps) {
   const { i18n } = useLocale();
-  const { timezone } = useTimePreferences();
+  // Mesmo fuso da grade Dia/Semana, que usa o relógio do navegador
+  const timezone = useMemo(() => dayjs.tz.guess(), []);
 
   const grid = useMemo(() => buildMonthGrid(anchor, weekStart), [anchor, weekStart]);
   const byDay = useMemo(() => groupBookingsByDay(bookings, timezone), [bookings, timezone]);

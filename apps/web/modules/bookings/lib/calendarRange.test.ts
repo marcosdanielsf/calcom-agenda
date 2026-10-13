@@ -4,6 +4,7 @@ import {
   buildMonthGrid,
   countBookingsByDay,
   formatRangeLabel,
+  getFetchEndDate,
   getRangeWindow,
   groupBookingsByDay,
   shiftAnchor,
@@ -137,7 +138,52 @@ describe("formatRangeLabel", () => {
 
   it("semana mostra o intervalo e dia mostra a data", () => {
     const week = getRangeWindow("week", anchor, 0);
-    expect(formatRangeLabel("week", week, anchor, "en")).toContain("Oct 11");
+    expect(formatRangeLabel("week", week, anchor, "en")).toBe("Oct 11 to Oct 17, 2026");
     expect(formatRangeLabel("day", getRangeWindow("day", anchor, 0), anchor, "en")).toBe("Oct 15, 2026");
+  });
+});
+
+describe("formatRangeLabel sem travessao", () => {
+  const dash = /[\u2013\u2014]/;
+
+  it("semana no mesmo mes em pt-BR", () => {
+    const anchor = dayjs("2026-10-15");
+    const label = formatRangeLabel("week", getRangeWindow("week", anchor, 0), anchor, "pt-BR");
+    expect(label).toBe("11 a 17 de out. de 2026");
+    expect(label).not.toMatch(dash);
+  });
+
+  it("semana que cruza meses em pt-BR", () => {
+    const anchor = dayjs("2026-10-01");
+    const label = formatRangeLabel("week", getRangeWindow("week", anchor, 0), anchor, "pt-BR");
+    expect(label).toBe("27 de set. a 3 de out. de 2026");
+    expect(label).not.toMatch(dash);
+  });
+
+  it("nenhum idioma gera U+2013 nem U+2014", () => {
+    const anchor = dayjs("2026-10-15");
+    const week = getRangeWindow("week", anchor, 1);
+    for (const locale of ["pt-BR", "en", "es", "fr", "de", "ja"]) {
+      expect(formatRangeLabel("week", week, anchor, locale)).not.toMatch(dash);
+    }
+  });
+});
+
+describe("getFetchEndDate", () => {
+  it("avanca um dia para nao perder reserva que termina depois da meia-noite", () => {
+    const window = getRangeWindow("day", dayjs("2026-10-15"), 0);
+    const end = dayjs(getFetchEndDate(window.end));
+    // reserva 23:30 a 00:30 do dia seguinte tem endTime dentro da janela de busca
+    const bookingEnd = window.end.add(30, "minute");
+    expect(bookingEnd.isAfter(window.end)).toBe(true);
+    expect(bookingEnd.isAfter(end)).toBe(false);
+  });
+});
+
+describe("agrupamento no fuso do navegador", () => {
+  it("dayjs.tz.guess agrupa no mesmo dia que a grade local", () => {
+    const iso = "2026-10-15T02:30:00.000Z";
+    const key = [...groupBookingsByDay([{ startTime: iso }], dayjs.tz.guess()).keys()][0];
+    expect(key).toBe(dayjs(iso).format("YYYY-MM-DD"));
   });
 });

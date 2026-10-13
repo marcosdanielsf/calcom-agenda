@@ -67,6 +67,8 @@ export function countBookingsByDay(bookings: BookingWithStart[], timezone: strin
   return counts;
 }
 
+const RANGE_JOINERS: Record<string, string> = { pt: "a", en: "to", es: "al", fr: "au", de: "bis", it: "al" };
+
 export function formatRangeLabel(
   range: CalendarRange,
   window: { start: Dayjs; end: Dayjs },
@@ -79,8 +81,26 @@ export function formatRangeLabel(
   if (range === "day") {
     return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(anchor.toDate());
   }
-  return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).formatRange(
-    window.start.toDate(),
-    window.end.toDate()
-  );
+  const format = (date: Dayjs, opts: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(locale, opts).format(date.toDate());
+  const joiner = RANGE_JOINERS[locale.split("-")[0].toLowerCase()] ?? "-";
+  // Mesmo ano: o ano aparece só no fim. formatRange geraria travessão (U+2013)
+  const sameMonth = window.start.isSame(window.end, "month");
+  const sameYear = window.start.isSame(window.end, "year");
+  const endLabel = format(window.end, { dateStyle: "medium" });
+  // Em idiomas com dia primeiro ("17 de out. de 2026") o início do mesmo mês é só o dia
+  const dayFirst = /^\d/.test(endLabel);
+  const startLabel =
+    sameMonth && dayFirst
+      ? format(window.start, { day: "numeric" })
+      : sameYear
+        ? format(window.start, { day: "numeric", month: "short" })
+        : format(window.start, { dateStyle: "medium" });
+  return `${startLabel} ${joiner} ${endLabel}`;
+}
+
+// Intervalo da consulta: o handler filtra por endTime <= beforeEndDate, então uma reserva que começa
+// no fim da janela e termina depois da meia-noite sumiria. A visão descarta o excedente pelo início.
+export function getFetchEndDate(windowEnd: Dayjs): string {
+  return windowEnd.add(1, "day").toISOString();
 }
