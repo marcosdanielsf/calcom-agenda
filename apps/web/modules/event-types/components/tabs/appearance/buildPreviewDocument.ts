@@ -1,6 +1,6 @@
 import { escapeCssForStyleTag, splitNexusCustomCode } from "@calcom/prisma/nexus-custom-code";
 import type { NexusAppearance } from "@calcom/prisma/zod-utils";
-import { sanitizeNexusHtml } from "@calcom/web/modules/bookings/lib/nexusAppearance";
+import { sanitizeNexusHtml, validNexusHex } from "@calcom/web/modules/bookings/lib/nexusAppearance";
 
 const PREVIEW_SLOTS = ["09:00", "09:30", "10:00", "10:30"];
 
@@ -20,8 +20,8 @@ export function buildPreviewDocument({
   durationLabel,
   buttonLabel,
 }: PreviewInput): string {
-  const primary = validHex(appearance?.primaryColor) ?? "#111827";
-  const background = validHex(appearance?.backgroundColor) ?? "#ffffff";
+  const primary = validNexusHex(appearance?.primaryColor) ?? "#111827";
+  const background = validNexusHex(appearance?.backgroundColor) ?? "#ffffff";
   const { css, html } = splitNexusCustomCode(appearance?.customCode ?? "");
   const cover = appearance?.coverImageUrl
     ? `<img data-nexus="cover" src="${escapeHtml(appearance.coverImageUrl)}" alt="">`
@@ -47,10 +47,6 @@ export function buildPreviewDocument({
   `;
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>${escapeCssForStyleTag(baseCss)}</style><style>${escapeCssForStyleTag(css)}</style></head><body><div data-nexus="booker">${cover}${heading}<p class="meta">${escapeHtml(durationLabel)}</p><div class="slots">${slots}</div><button type="button" data-nexus="cta">${label}</button></div>${sanitizeNexusHtml(html)}</body></html>`;
-}
-
-function validHex(value?: string | null): string | null {
-  return value && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value) ? value : null;
 }
 
 function isDark(hex: string): boolean {

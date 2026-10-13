@@ -2,7 +2,7 @@
 
 import { escapeCssForStyleTag, splitNexusCustomCode } from "@calcom/prisma/nexus-custom-code";
 import type { NexusAppearance } from "@calcom/prisma/zod-utils";
-import { sanitizeNexusHtml } from "@calcom/web/modules/bookings/lib/nexusAppearance";
+import { sanitizeNexusHtml, validNexusHex } from "@calcom/web/modules/bookings/lib/nexusAppearance";
 import { useEffect, useMemo, useRef } from "react";
 
 export const NexusAppearanceLayer = ({ appearance }: { appearance?: NexusAppearance }) => {
@@ -15,15 +15,16 @@ export const NexusAppearanceLayer = ({ appearance }: { appearance?: NexusAppeara
   }, [html]);
 
   if (!appearance) return null;
+  const backgroundColor = validNexusHex(appearance.backgroundColor);
 
   return (
     <>
-      {appearance.backgroundColor && (
+      {backgroundColor && (
         <style
           data-nexus-appearance-vars
           // biome-ignore lint/security/noDangerouslySetInnerHtml: valor validado como hex pelo schema
           dangerouslySetInnerHTML={{
-            __html: `[data-nexus="booker"]{background-color:${appearance.backgroundColor}}`,
+            __html: `[data-nexus="booker"]{background-color:${backgroundColor}}`,
           }}
         />
       )}
