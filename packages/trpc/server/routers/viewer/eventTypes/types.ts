@@ -10,7 +10,7 @@ import type {
 import { MAX_SEATS_PER_TIME_SLOT } from "@calcom/lib/constants";
 import {
   customInputSchema,
-  EventTypeMetaDataSchema,
+  EventTypeMetaDataUpdateSchema,
   eventTypeBookingFields,
   eventTypeColor,
   eventTypeLocations,
@@ -162,7 +162,7 @@ const BaseEventTypeUpdateInput: z.ZodType<TUpdateInputSchema> = z
     price: z.number().int().optional(),
     currency: z.string().optional(),
     slotInterval: z.number().int().nullable().optional(),
-    metadata: EventTypeMetaDataSchema.optional(),
+    metadata: EventTypeMetaDataUpdateSchema.optional(),
     successRedirectUrl: z.string().nullable().optional(),
     forwardParamsSuccessRedirect: z.boolean().nullable().optional(),
     bookingLimits: intervalLimitsType.nullable().optional(),

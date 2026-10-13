@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import z from "zod";
-import { EventTypeMetaDataSchema, excludeOrRequireEmailSchema } from "./zod-utils";
+import {
+  EventTypeMetaDataSchema,
+  EventTypeMetaDataUpdateSchema,
+  excludeOrRequireEmailSchema,
+} from "./zod-utils";
 
 describe("excludeOrRequireEmailSchema", () => {
   const parse = (input: string) => z.object({ v: excludeOrRequireEmailSchema }).safeParse({ v: input });
@@ -111,8 +115,71 @@ describe("EventTypeMetaDataSchema nexusAppearance", () => {
     if (result.success) expect(result.data?.nexusAppearance).toEqual(nexusAppearance);
   });
 
-  it("falha quando o customCode tem script", () => {
+  it("leitura não lança com script no customCode e devolve null", () => {
     const result = EventTypeMetaDataSchema.safeParse({
+      multipleDuration: [30],
+      nexusAppearance: { primaryColor: "#003ff1", customCode: "<script>alert(1)</script>" },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data?.nexusAppearance?.customCode).toBeNull();
+      expect(result.data?.nexusAppearance?.primaryColor).toBe("#003ff1");
+      expect(result.data?.multipleDuration).toEqual([30]);
+    }
+  });
+
+  it("leitura não lança com cor, capa ou tipo inválidos", () => {
+    const result = EventTypeMetaDataSchema.safeParse({
+      nexusAppearance: {
+        primaryColor: "azul",
+        backgroundColor: "red;}</style>",
+        coverImageUrl: "javascript:alert(1)",
+        customCode: 42,
+        showTitle: "sim",
+      },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data?.nexusAppearance).toEqual({
+        primaryColor: null,
+        backgroundColor: null,
+        coverImageUrl: null,
+        customCode: null,
+        showTitle: undefined,
+      });
+    }
+  });
+
+  it("leitura descarta nexusAppearance que não é objeto", () => {
+    for (const bad of ["x", 1, null, []]) {
+      const result = EventTypeMetaDataSchema.safeParse({ multipleDuration: [30], nexusAppearance: bad });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data?.nexusAppearance).toBeUndefined();
+    }
+  });
+
+  it("leitura só aceita capa https", () => {
+    const read = (coverImageUrl: string) =>
+      EventTypeMetaDataSchema.parse({ nexusAppearance: { coverImageUrl } })?.nexusAppearance?.coverImageUrl;
+    expect(read("https://exemplo.com/capa.png")).toBe("https://exemplo.com/capa.png");
+    expect(read("http://exemplo.com/capa.png")).toBeNull();
+    expect(read("data:image/png;base64,AAAA")).toBeNull();
+  });
+
+  it("preserva nexusServiceId no parse", () => {
+    const nexusServiceId = "0b6f3a56-5d3e-4d0e-9f4c-1f2a3b4c5d6e";
+    const result = EventTypeMetaDataSchema.safeParse({ nexusServiceId, multipleDuration: [30] });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data?.nexusServiceId).toBe(nexusServiceId);
+    const update = EventTypeMetaDataUpdateSchema.safeParse({ nexusServiceId });
+    expect(update.success).toBe(true);
+    if (update.success) expect(update.data?.nexusServiceId).toBe(nexusServiceId);
+  });
+});
+
+describe("EventTypeMetaDataUpdateSchema (entrada estrita)", () => {
+  it("recusa script no customCode com a mensagem de i18n", () => {
+    const result = EventTypeMetaDataUpdateSchema.safeParse({
       nexusAppearance: { customCode: "<script>alert(1)</script>" },
     });
     expect(result.success).toBe(false);
@@ -120,8 +187,30 @@ describe("EventTypeMetaDataSchema nexusAppearance", () => {
   });
 
   it("recusa cor que não é hex", () => {
-    expect(EventTypeMetaDataSchema.safeParse({ nexusAppearance: { primaryColor: "azul" } }).success).toBe(
-      false
-    );
+    expect(
+      EventTypeMetaDataUpdateSchema.safeParse({ nexusAppearance: { primaryColor: "azul" } }).success
+    ).toBe(false);
+  });
+
+  it("recusa capa que não é https", () => {
+    for (const coverImageUrl of ["javascript:alert(1)", "data:image/png;base64,AAAA", "http://a.com/x.png"]) {
+      expect(EventTypeMetaDataUpdateSchema.safeParse({ nexusAppearance: { coverImageUrl } }).success).toBe(
+        false
+      );
+    }
+  });
+
+  it("aceita aparência válida e metadata sem nexusAppearance", () => {
+    expect(
+      EventTypeMetaDataUpdateSchema.safeParse({
+        nexusAppearance: {
+          coverImageUrl: "https://exemplo.com/capa.png",
+          primaryColor: "#003ff1",
+          customCode: "<style>.a{color:red}</style>",
+        },
+      }).success
+    ).toBe(true);
+    expect(EventTypeMetaDataUpdateSchema.safeParse({ multipleDuration: [30] }).success).toBe(true);
+    expect(EventTypeMetaDataUpdateSchema.safeParse(null).success).toBe(true);
   });
 });

@@ -144,10 +144,25 @@ export type BookerLayoutSettings = z.infer<typeof bookerLayouts>;
 
 export const RequiresConfirmationThresholdUnits: z.ZodType<UnitTypeLongPlural> = z.enum(["hours", "minutes"]);
 
-const nexusHexColor = z.string().regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+const NEXUS_HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+const nexusHexColor = z.string().regex(NEXUS_HEX_COLOR, "nexus_appearance_color_invalid");
 
+const isHttpsUrl = (value: string) => {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+const nexusCoverUrl = z
+  .string()
+  .url()
+  .max(2048)
+  .refine(isHttpsUrl, { message: "nexus_appearance_cover_image_invalid" });
+
+// Entrada estrita (salvar no editor): recusa o que for inválido.
 export const nexusAppearanceSchema = z.object({
-  coverImageUrl: z.string().url().max(2048).nullish(),
+  coverImageUrl: nexusCoverUrl.nullish(),
   primaryColor: nexusHexColor.nullish(),
   backgroundColor: nexusHexColor.nullish(),
   buttonText: z.string().trim().max(40).nullish(),
@@ -166,57 +181,81 @@ export const nexusAppearanceSchema = z.object({
 
 export type NexusAppearance = z.infer<typeof nexusAppearanceSchema>;
 
-const _eventTypeMetaDataSchemaWithoutApps = z.object({
-  smartContractAddress: z.string().optional(),
-  blockchainId: z.number().optional(),
-  multipleDuration: z.number().array().optional(),
-  hideDurationSelectorInBookingPage: z.boolean().optional(),
-  giphyThankYouPage: z.string().optional(),
-  additionalNotesRequired: z.boolean().optional(),
-  disableSuccessPage: z.boolean().optional(),
-  disableStandardEmails: z
-    .object({
-      all: z
-        .object({
-          host: z.boolean().optional(),
-          attendee: z.boolean().optional(),
-        })
-        .optional(),
-      confirmation: z
-        .object({
-          host: z.boolean().optional(),
-          attendee: z.boolean().optional(),
-        })
-        .optional(),
-    })
-    .optional(),
-  managedEventConfig: z
-    .object({
-      unlockedFields: z.custom<{ [k in keyof Omit<Prisma.EventTypeSelect, "id">]: true }>().optional(),
-    })
-    .optional(),
-  requiresConfirmationThreshold: z
-    .object({
-      time: z.number(),
-      unit: RequiresConfirmationThresholdUnits,
-    })
-    .optional(),
-  config: z
-    .object({
-      useHostSchedulesForTeamEvent: z.boolean().optional(),
-    })
-    .optional(),
-  bookerLayouts: bookerLayouts.optional(),
-  nexusAppearance: nexusAppearanceSchema.optional(),
+// Leitura tolerante: esse schema roda em ~45 `.parse` (página pública, listas, editor). Um valor gravado
+// que falhe a regra vira null em vez de lançar e derrubar a página; o dono ainda consegue abrir e limpar.
+export const nexusAppearanceReadSchema = z.object({
+  coverImageUrl: nexusCoverUrl.nullish().catch(null),
+  primaryColor: nexusHexColor.nullish().catch(null),
+  backgroundColor: nexusHexColor.nullish().catch(null),
+  buttonText: z.string().trim().max(40).nullish().catch(null),
+  showTitle: z.boolean().optional().catch(undefined),
+  showDescription: z.boolean().optional().catch(undefined),
+  customCode: nexusAppearanceSchema.shape.customCode.catch(null),
 });
 
-export const eventTypeMetaDataSchemaWithUntypedApps = _eventTypeMetaDataSchemaWithoutApps.merge(
+const buildEventTypeMetaDataSchema = <T extends z.ZodTypeAny>(nexusAppearance: T) =>
   z.object({
-    apps: z.record(z.string(), z.any()).optional(),
-  })
+    smartContractAddress: z.string().optional(),
+    blockchainId: z.number().optional(),
+    multipleDuration: z.number().array().optional(),
+    hideDurationSelectorInBookingPage: z.boolean().optional(),
+    giphyThankYouPage: z.string().optional(),
+    additionalNotesRequired: z.boolean().optional(),
+    disableSuccessPage: z.boolean().optional(),
+    disableStandardEmails: z
+      .object({
+        all: z
+          .object({
+            host: z.boolean().optional(),
+            attendee: z.boolean().optional(),
+          })
+          .optional(),
+        confirmation: z
+          .object({
+            host: z.boolean().optional(),
+            attendee: z.boolean().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+    managedEventConfig: z
+      .object({
+        unlockedFields: z.custom<{ [k in keyof Omit<Prisma.EventTypeSelect, "id">]: true }>().optional(),
+      })
+      .optional(),
+    requiresConfirmationThreshold: z
+      .object({
+        time: z.number(),
+        unit: RequiresConfirmationThresholdUnits,
+      })
+      .optional(),
+    config: z
+      .object({
+        useHostSchedulesForTeamEvent: z.boolean().optional(),
+      })
+      .optional(),
+    bookerLayouts: bookerLayouts.optional(),
+    nexusAppearance,
+    // Gravado por apps/web/lib/nexus-sso/eventTypes.ts (z.string().uuid()); sem a chave aqui, salvar qualquer aba a apaga.
+    nexusServiceId: z.string().uuid().optional(),
+  });
+
+const _eventTypeMetaDataSchemaWithoutApps = buildEventTypeMetaDataSchema(
+  nexusAppearanceReadSchema.optional().catch(undefined)
 );
 
+const appsShape = z.object({
+  apps: z.record(z.string(), z.any()).optional(),
+});
+
+export const eventTypeMetaDataSchemaWithUntypedApps = _eventTypeMetaDataSchemaWithoutApps.merge(appsShape);
+
 export const EventTypeMetaDataSchema = eventTypeMetaDataSchemaWithUntypedApps.nullable();
+
+// Entrada do update do editor: aqui a aparência é estrita e recusa o que for inválido.
+export const EventTypeMetaDataUpdateSchema = buildEventTypeMetaDataSchema(nexusAppearanceSchema.optional())
+  .merge(appsShape)
+  .nullable();
 export const eventTypeMetaDataSchemaWithoutApps = _eventTypeMetaDataSchemaWithoutApps.nullable();
 
 export type EventTypeMetadata = z.infer<typeof EventTypeMetaDataSchema>;
