@@ -141,13 +141,13 @@ function BookingCalendarInner({
     <>
       <div
         data-testid="booking-calendar-toolbar"
-        className="-mx-1 mb-4 flex items-center justify-between gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        className="-mx-1 mb-4 flex items-center gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex shrink-0 items-center gap-2">
           <WeekPicker anchor={anchor} label={periodLabel} onDateChange={setAnchor} />
           {allowedFilterIds.length > 0 && <DataTableFilters.FilterBar table={table} />}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 md:ml-auto">
           <div
             data-testid="booking-range-toggle"
             className="[&_button]:min-h-10 [&_button]:min-w-10"
@@ -177,6 +177,9 @@ function BookingCalendarInner({
               <ChevronRightIcon className="h-4 w-4" />
             </Button>
           </ButtonGroup>
+        </div>
+        {/* No celular a barra rola: Lista/Calendário vem primeiro para não ficar escondido no fim */}
+        <div className="order-first shrink-0 md:order-none">
           <ViewToggleButton bookingsV3Enabled={bookingsV3Enabled} />
         </div>
       </div>

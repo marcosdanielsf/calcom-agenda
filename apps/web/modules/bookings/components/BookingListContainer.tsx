@@ -191,7 +191,12 @@ function BookingListInner({
 
           <DataTableSegment.Select />
           {/* <BookingsCsvDownload status={status} /> */}
-          {bookingsV3Enabled && <ViewToggleButton bookingsV3Enabled={bookingsV3Enabled} />}
+          {/* No celular a barra rola: Lista/Calendário vem primeiro para não ficar escondido no fim */}
+          {bookingsV3Enabled && (
+            <div className="order-first shrink-0 md:order-none">
+              <ViewToggleButton bookingsV3Enabled={bookingsV3Enabled} />
+            </div>
+          )}
         </div>
       </div>
       {displayedFilterCount > 0 && showFilters && (
