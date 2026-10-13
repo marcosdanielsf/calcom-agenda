@@ -20,5 +20,13 @@ export function WeekPicker({ anchor, label, onDateChange }: WeekPickerProps) {
     onDateChange(dayjs(date).startOf("day"));
   };
 
-  return <DatePicker date={selectedDate} onDatesChange={handleDateChange} minDate={null} label={label} />;
+  return (
+    <DatePicker
+      date={selectedDate}
+      onDatesChange={handleDateChange}
+      minDate={null}
+      label={label}
+      className="[&_button]:min-h-10"
+    />
+  );
 }

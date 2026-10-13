@@ -14,7 +14,7 @@ export function ViewToggleButton({ bookingsV3Enabled }: ViewToggleButtonProps) {
   const [view, setView] = useBookingsView({ bookingsV3Enabled });
 
   return (
-    <div>
+    <div className="[&_button]:min-h-10 [&_button]:min-w-10">
       <ToggleGroup
         value={view}
         onValueChange={(value: "list" | "calendar") => {
