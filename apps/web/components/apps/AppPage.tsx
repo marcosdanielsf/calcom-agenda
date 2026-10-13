@@ -99,6 +99,8 @@ export const AppPage = ({
 
   const mutation = useAddAppMutation(null, {
     onSuccess: async (data) => {
+      // Autorizacao aberta em outra aba (quadro do Nexus): solta o botao, o aviso ja saiu.
+      if (data?.awaitingAuthorization) setIsLoading(false);
       if (data?.setupPending) return;
       setIsLoading(false);
       showToast(data?.message || t("app_successfully_installed"), "success");

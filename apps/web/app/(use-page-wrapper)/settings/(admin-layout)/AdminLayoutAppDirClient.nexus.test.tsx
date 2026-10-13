@@ -22,7 +22,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 
 beforeEach(() => {
   state.pathname = "/settings/admin/users";
-  state.search = "shell=nexus";
+  state.search = "shell=nexus&theme=dark";
   vi.clearAllMocks();
 });
 afterEach(() => cleanup());
@@ -36,7 +36,7 @@ describe("Admin do motor dentro do Nexus", () => {
       { wrapper }
     );
     expect(screen.queryByText("Usuarios do motor")).toBeNull();
-    expect(router.replace).toHaveBeenCalledWith("/settings/my-account/profile");
+    expect(router.replace).toHaveBeenCalledWith("/settings/my-account/profile?shell=nexus&theme=dark");
   });
 
   it("fora do modo Nexus o admin continua igual", () => {
