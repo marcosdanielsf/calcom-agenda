@@ -177,19 +177,22 @@ function BookingListInner({
           </div>
         </div>
 
-        {/* Desktop: second item on first row, Mobile: first item on second row */}
-        <FilterButton
-          table={table}
-          displayedFilterCount={displayedFilterCount}
-          setShowFilters={setShowFilters}
-        />
+        {/* Filtros e alternador numa linha só: no celular ela rola em vez de quebrar */}
+        <div
+          data-testid="booking-list-toolbar"
+          className="-mx-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <FilterButton
+            table={table}
+            displayedFilterCount={displayedFilterCount}
+            setShowFilters={setShowFilters}
+          />
 
-        {/* Desktop: auto-pushed to right via flex-grow spacer, Mobile: continue on second row */}
-        <div className="hidden grow md:block" />
+          <div className="hidden grow md:block" />
 
-        <DataTableSegment.Select />
-        {/* <BookingsCsvDownload status={status} /> */}
-        {bookingsV3Enabled && <ViewToggleButton bookingsV3Enabled={bookingsV3Enabled} />}
+          <DataTableSegment.Select />
+          {/* <BookingsCsvDownload status={status} /> */}
+          {bookingsV3Enabled && <ViewToggleButton bookingsV3Enabled={bookingsV3Enabled} />}
+        </div>
       </div>
       {displayedFilterCount > 0 && showFilters && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
