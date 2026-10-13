@@ -376,9 +376,13 @@ export const AppPage = ({
                 </>
               )}
               •{" "}
-              <a target="_blank" rel="noreferrer" href={website}>
-                {t("published_by", { author })}
-              </a>
+              {nexusSections.showVendorContact ? (
+                <a target="_blank" rel="noreferrer" href={website}>
+                  {t("published_by", { author })}
+                </a>
+              ) : (
+                <span>{t("published_by", { author })}</span>
+              )}
             </h2>
             {isTemplate && (
               <Badge variant="red" className="mt-4">
