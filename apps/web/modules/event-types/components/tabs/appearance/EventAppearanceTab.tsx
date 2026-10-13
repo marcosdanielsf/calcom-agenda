@@ -19,6 +19,7 @@ const ColorField = ({
   fallback,
   clearLabel,
   testId,
+  error,
   onChange,
 }: {
   label: string;
@@ -26,9 +27,9 @@ const ColorField = ({
   fallback: string;
   clearLabel: string;
   testId: string;
+  error?: string;
   onChange: (value: string | null) => void;
 }) => {
-  const invalid = !!value && !HEX_COLOR.test(value);
   return (
     <div>
       <Label>{label}</Label>
@@ -54,7 +55,11 @@ const ColorField = ({
           </Button>
         )}
       </div>
-      {invalid && <Alert className="mt-1" severity="error" message="#RRGGBB" />}
+      {error && (
+        <div data-testid={`${testId}-error`}>
+          <Alert className="mt-1" severity="error" message={error} />
+        </div>
+      )}
     </div>
   );
 };
@@ -68,16 +73,22 @@ export const EventAppearanceTab = () => {
   const customCode = appearance.customCode ?? "";
   const scriptBlocked = !validateNexusCustomCode(customCode).ok;
 
-  form.register("metadata.nexusAppearance.customCode", {
-    validate: (value) =>
-      validateNexusCustomCode(value ?? "").ok ? true : t("nexus_custom_code_script_not_allowed"),
-  });
+  // Validação no resolver do form (useEventTypeForm); aqui só se mostra o erro de cada campo.
+  const fieldErrors = (
+    form.formState.errors.metadata as
+      | { nexusAppearance?: Partial<Record<keyof NexusAppearance, { message?: string }>> }
+      | undefined
+  )?.nexusAppearance;
+  const errorText = (key: keyof NexusAppearance) => {
+    const message = fieldErrors?.[key]?.message;
+    return message ? t(message) : undefined;
+  };
 
   const update = <K extends keyof NexusAppearance>(key: K, value: NexusAppearance[K]) => {
     form.setValue(
       "metadata.nexusAppearance",
       { ...appearance, [key]: value },
-      { shouldDirty: true, shouldValidate: key === "customCode" }
+      { shouldDirty: true, shouldValidate: true }
     );
   };
 
@@ -124,6 +135,11 @@ export const EventAppearanceTab = () => {
               value={appearance.coverImageUrl ?? ""}
               onChange={(event) => update("coverImageUrl", event.target.value.trim() || null)}
             />
+            {errorText("coverImageUrl") && (
+              <div data-testid="nexus-cover-url-error">
+                <Alert severity="error" message={errorText("coverImageUrl")} />
+              </div>
+            )}
             {colors.map((color) => (
               <ColorField
                 key={color.key}
@@ -132,6 +148,7 @@ export const EventAppearanceTab = () => {
                 fallback={color.fallback}
                 clearLabel={t("nexus_appearance_color_clear")}
                 testId={color.testId}
+                error={errorText(color.key)}
                 onChange={(value) => update(color.key, value)}
               />
             ))}
@@ -182,9 +199,9 @@ export const EventAppearanceTab = () => {
           value={customCode}
           onChange={(event) => update("customCode", event.target.value || null)}
         />
-        {scriptBlocked && (
+        {errorText("customCode") && (
           <div data-testid="nexus-custom-code-error">
-            <Alert className="mt-2" severity="error" message={t("nexus_custom_code_script_not_allowed")} />
+            <Alert className="mt-2" severity="error" message={errorText("customCode")} />
           </div>
         )}
         <Alert className="mt-3" severity="warning" message={t("nexus_custom_code_warning")} />

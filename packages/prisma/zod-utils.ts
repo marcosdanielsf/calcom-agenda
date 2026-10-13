@@ -156,8 +156,8 @@ const isHttpsUrl = (value: string) => {
 };
 const nexusCoverUrl = z
   .string()
-  .url()
-  .max(2048)
+  .url("nexus_appearance_cover_image_invalid")
+  .max(2048, "nexus_appearance_cover_image_invalid")
   .refine(isHttpsUrl, { message: "nexus_appearance_cover_image_invalid" });
 
 // Entrada estrita (salvar no editor): recusa o que for inválido.

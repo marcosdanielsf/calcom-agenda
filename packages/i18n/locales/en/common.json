@@ -4789,6 +4789,8 @@
   "nexus_appearance_primary_color": "Primary color",
   "nexus_appearance_background_color": "Background color",
   "nexus_appearance_color_clear": "Use the account color",
+  "nexus_appearance_cover_image_invalid": "Use a full https:// address for the cover image.",
+  "nexus_appearance_color_invalid": "Use a hex color like #003ff1.",
   "nexus_appearance_button_text": "Button text",
   "nexus_appearance_show_title": "Show event type title",
   "nexus_appearance_show_description": "Show description",

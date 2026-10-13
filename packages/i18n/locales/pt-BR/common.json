@@ -4620,6 +4620,8 @@
   "nexus_appearance_primary_color": "Cor principal",
   "nexus_appearance_background_color": "Cor de fundo",
   "nexus_appearance_color_clear": "Usar a cor da conta",
+  "nexus_appearance_cover_image_invalid": "Use um endereço completo https:// para a imagem de capa.",
+  "nexus_appearance_color_invalid": "Use uma cor hexadecimal como #003ff1.",
   "nexus_appearance_button_text": "Texto do botão",
   "nexus_appearance_show_title": "Mostrar título do tipo",
   "nexus_appearance_show_description": "Mostrar descrição",
