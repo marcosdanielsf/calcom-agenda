@@ -18,6 +18,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 import i18nConfigration from "../../../../../i18n.json";
+import { getNexusAppearance } from "@calcom/web/modules/bookings/lib/nexusAppearance";
 import { EventDetails, EventMembers, EventMetaSkeleton, EventTitle } from "./event-meta";
 import { ScrollableWithGradients } from "./ScrollableWithGradients";
 
@@ -155,6 +156,10 @@ export const EventMeta = ({
     userLocale
   );
 
+  const nexusAppearance = getNexusAppearance(event?.metadata);
+  const showTitle = nexusAppearance?.showTitle !== false;
+  const showDescription = nexusAppearance?.showDescription !== false;
+
   return (
     <div className={`${classNames?.eventMetaContainer || ""} relative z-10 p-6`} data-testid="event-meta">
       {isPending && (
@@ -164,6 +169,14 @@ export const EventMeta = ({
       )}
       {!isPending && !!event && (
         <m.div {...fadeInUp} layout transition={{ ...fadeInUp.transition, delay: 0.3 }}>
+          {nexusAppearance?.coverImageUrl && (
+            <img
+              data-nexus="cover"
+              src={nexusAppearance.coverImageUrl}
+              alt=""
+              className="mb-4 h-auto max-w-full rounded-md object-cover"
+            />
+          )}
           <EventMembers
             schedulingType={event.schedulingType}
             users={event.subsetOfUsers}
@@ -173,10 +186,12 @@ export const EventMeta = ({
             roundRobinHideOrgAndTeam={roundRobinHideOrgAndTeam}
             hideOrgTeamAvatar={hideOrgTeamAvatar}
           />
-          <EventTitle className={`${classNames?.eventMetaTitle} my-2`}>
-            {translatedTitle ?? event?.title}
-          </EventTitle>
-          {(event.description || translatedDescription) && (
+          {showTitle && (
+            <EventTitle className={`${classNames?.eventMetaTitle} my-2`}>
+              {translatedTitle ?? event?.title}
+            </EventTitle>
+          )}
+          {showDescription && (event.description || translatedDescription) && (
             <EventMetaBlock data-testid="event-meta-description" contentClassName="mb-8">
               <ScrollableWithGradients
                 className="wrap-break-word scroll-bar max-h-[180px] max-w-full overflow-y-auto pr-4"

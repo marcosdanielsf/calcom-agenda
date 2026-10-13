@@ -162,6 +162,7 @@ const SlotItem = ({
             isTimeslotUnavailable
           }
           data-testid="time"
+          data-nexus="slot"
           data-disabled={bookingFull}
           data-time={slot.time}
           onClick={onButtonClick}

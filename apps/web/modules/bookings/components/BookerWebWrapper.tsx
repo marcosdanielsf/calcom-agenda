@@ -28,6 +28,7 @@ import { useBookings } from "../hooks/useBookings";
 import { useCalendars } from "../hooks/useCalendars";
 import { useSlots } from "../hooks/useSlots";
 import { useVerifyCode } from "../hooks/useVerifyCode";
+import { getNexusAppearance } from "../lib/nexusAppearance";
 import { useVerifyEmail } from "../hooks/useVerifyEmail";
 import { Booker as BookerComponent } from "./Booker";
 
@@ -194,9 +195,10 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
     },
     [router]
   );
+  const nexusPrimaryColor = getNexusAppearance(event.data?.metadata)?.primaryColor ?? undefined;
   useBrandColors({
-    brandColor: event.data?.profile.brandColor ?? DEFAULT_LIGHT_BRAND_COLOR,
-    darkBrandColor: event.data?.profile.darkBrandColor ?? DEFAULT_DARK_BRAND_COLOR,
+    brandColor: nexusPrimaryColor ?? event.data?.profile.brandColor ?? DEFAULT_LIGHT_BRAND_COLOR,
+    darkBrandColor: nexusPrimaryColor ?? event.data?.profile.darkBrandColor ?? DEFAULT_DARK_BRAND_COLOR,
     theme: event.data?.profile.theme,
   });
 

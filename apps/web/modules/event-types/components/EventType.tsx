@@ -37,6 +37,7 @@ const tabs = [
   "instant",
   "recurring",
   "apps",
+  "appearance",
   "webhooks",
   "ai",
   "payments",

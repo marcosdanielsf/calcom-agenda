@@ -425,6 +425,7 @@ export type TabMap = {
   advanced: React.ReactNode;
   ai?: React.ReactNode;
   apps?: React.ReactNode;
+  appearance?: React.ReactNode;
   availability: React.ReactNode;
   instant?: React.ReactNode;
   limits: React.ReactNode;

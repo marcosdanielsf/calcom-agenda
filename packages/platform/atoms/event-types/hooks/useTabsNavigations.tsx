@@ -125,6 +125,13 @@ export const useTabsNavigations = ({
       }
     }
     navigation.push({
+      name: t("nexus_appearance"),
+      href: `/event-types/${eventTypeId}?tabName=appearance`,
+      icon: "paintbrush",
+      info: t("nexus_appearance_description"),
+      "data-testid": "nexus_appearance",
+    });
+    navigation.push({
       name: t("webhooks"),
       href: `/event-types/${eventTypeId}?tabName=webhooks`,
       icon: "webhook",
