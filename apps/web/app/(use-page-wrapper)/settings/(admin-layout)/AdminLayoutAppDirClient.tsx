@@ -1,11 +1,13 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ComponentProps } from "react";
-import React from "react";
+import React, { useEffect } from "react";
 
 import type { UserPermissionRole } from "@calcom/prisma/enums";
 import { ErrorBoundary } from "@calcom/ui/components/errorBoundary";
+import { NEXUS_SETTINGS_HOME } from "@calcom/web/modules/settings/nexusSettings";
+import { useNexusShell } from "@calcom/web/modules/shell/NexusShell";
 
 import type Shell from "~/shell/Shell";
 
@@ -15,8 +17,15 @@ export type AdminLayoutProps = {
 } & ComponentProps<typeof Shell>;
 export default function AdminLayoutAppDirClient({ children }: AdminLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  // A administracao do motor e feita por fora: dentro do quadro do Nexus, volta para o perfil.
+  const nexus = useNexusShell();
+  useEffect(() => {
+    if (nexus) router.replace(NEXUS_SETTINGS_HOME);
+  }, [nexus, router]);
 
   const isAppsPage = pathname?.startsWith("/settings/admin/apps");
+  if (nexus) return null;
   return (
     <div className="divide-subtle bg-default mx-auto flex max-w-4xl flex-row divide-y">
       <div className={isAppsPage ? "min-w-0" : "*:flex-1 flex flex-1"}>
