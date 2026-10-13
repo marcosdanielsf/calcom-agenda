@@ -183,7 +183,7 @@ describe("getFetchEndDate", () => {
 describe("agrupamento no fuso do navegador", () => {
   it("dayjs.tz.guess agrupa no mesmo dia que a grade local", () => {
     const iso = "2026-10-15T02:30:00.000Z";
-    const key = [...groupBookingsByDay([{ startTime: iso }], dayjs.tz.guess()).keys()][0];
+    const key = Array.from(groupBookingsByDay([{ startTime: iso }], dayjs.tz.guess()).keys())[0];
     expect(key).toBe(dayjs(iso).format("YYYY-MM-DD"));
   });
 });
