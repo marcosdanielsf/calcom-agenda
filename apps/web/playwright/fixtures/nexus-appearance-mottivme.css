@@ -1,5 +1,20 @@
 <style>
+  /* Molde da casa (widget MOTTIVME): preto, azul royal e capa de 290 px.
+     As variáveis --cal-* são redefinidas dentro do bloco para o texto e as bordas do
+     agendamento acompanharem o fundo escuro também quando a página está no tema claro. */
   [data-nexus="booker"] {
+    --cal-bg: #0b1220;
+    --cal-bg-muted: #0f1a2e;
+    --cal-bg-subtle: #16213a;
+    --cal-bg-emphasis: #1e2a44;
+    --cal-text: #cbd5e1;
+    --cal-text-emphasis: #eaeefb;
+    --cal-text-subtle: #a9b4d0;
+    --cal-text-muted: #8a96b3;
+    --cal-border: #1e2a44;
+    --cal-border-subtle: #1e2a44;
+    --cal-border-muted: #16213a;
+    --cal-border-emphasis: #2c3b5c;
     background: #0b1220;
     color: #eaeefb;
   }
