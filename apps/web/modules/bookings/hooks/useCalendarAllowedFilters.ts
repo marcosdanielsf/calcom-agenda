@@ -6,13 +6,16 @@ import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
 
 /**
  * Custom hook to manage allowed filters for calendar view
- * - Users without permission to read others' bookings: no filters
- * - Users with permission to read others' bookings: userId filter with their own ID as default
+ * - Everyone: eventTypeId filter
+ * - Users with permission to read others' bookings: also userId, defaulting to their own ID
  */
 export function useCalendarAllowedFilters({ canReadOthersBookings }: { canReadOthersBookings: boolean }) {
   const { data: user } = useMeQuery();
   const { updateFilter, clearAll } = useDataTable();
-  const allowedFilterIds = useMemo(() => (canReadOthersBookings ? ["userId"] : []), [canReadOthersBookings]);
+  const allowedFilterIds = useMemo(
+    () => (canReadOthersBookings ? ["eventTypeId", "userId"] : ["eventTypeId"]),
+    [canReadOthersBookings]
+  );
   const hasInitialized = useRef(false);
 
   useEffect(() => {

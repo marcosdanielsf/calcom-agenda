@@ -1,39 +1,23 @@
-import { useState, useEffect } from "react";
-
 import dayjs from "@calcom/dayjs";
 import { DatePicker } from "@calcom/ui/components/form";
-
-import { getWeekStart } from "../lib/weekUtils";
+import { useEffect, useState } from "react";
 
 interface WeekPickerProps {
-  currentWeekStart: dayjs.Dayjs;
-  userWeekStart: number;
+  anchor: dayjs.Dayjs;
+  label: string;
   onDateChange: (date: dayjs.Dayjs) => void;
 }
 
-export function WeekPicker({ currentWeekStart, userWeekStart, onDateChange }: WeekPickerProps) {
-  const [selectedDate, setSelectedDate] = useState<Date>(currentWeekStart.toDate());
+export function WeekPicker({ anchor, label, onDateChange }: WeekPickerProps) {
+  const [selectedDate, setSelectedDate] = useState<Date>(anchor.toDate());
   useEffect(() => {
-    setSelectedDate(currentWeekStart.toDate());
-  }, [currentWeekStart]);
+    setSelectedDate(anchor.toDate());
+  }, [anchor]);
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
-    const selectedDayjs = dayjs(date);
-    const newWeekStart = getWeekStart(selectedDayjs, userWeekStart);
-    onDateChange(newWeekStart);
+    onDateChange(dayjs(date).startOf("day"));
   };
 
-  const weekStart = currentWeekStart;
-  const weekEnd = currentWeekStart.add(6, "day");
-  const startMonth = weekStart.format("MMM");
-  const endMonth = weekEnd.format("MMM");
-  const year = weekEnd.format("YYYY");
-
-  const weekRange =
-    startMonth === endMonth
-      ? `${startMonth} ${weekStart.format("D")} - ${weekEnd.format("D")}, ${year}`
-      : `${weekStart.format("MMM D")} - ${weekEnd.format("MMM D")}, ${year}`;
-
-  return <DatePicker date={selectedDate} onDatesChange={handleDateChange} minDate={null} label={weekRange} />;
+  return <DatePicker date={selectedDate} onDatesChange={handleDateChange} minDate={null} label={label} />;
 }

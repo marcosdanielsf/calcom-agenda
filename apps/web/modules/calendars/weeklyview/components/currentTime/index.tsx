@@ -69,6 +69,7 @@ export function CurrentTime({
   return (
     <div
       ref={currentTimeRef}
+      data-testid="calendar-current-time"
       className="absolute top-0 z-40 flex h-px items-center justify-center text-xs"
       aria-hidden="true"
       style={{

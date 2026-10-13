@@ -4611,5 +4611,11 @@
   "agenda_reservation_resume": "Retomar formulário",
   "agenda_reservation_choose_slot": "Escolher outro horário",
   "calendar_events_disabled_video_limitation": "Quando os eventos de calendário estão desabilitados, os links de reunião não podem ser gerados para aplicativos cuja geração de link está vinculada à criação de eventos de calendário, por exemplo, Google Meet e Microsoft Teams. Outros aplicativos de vídeo como Cal Video continuarão funcionando.",
+  "agenda_range_day": "Dia",
+  "agenda_range_week": "Semana",
+  "agenda_range_month": "Mês",
+  "agenda_range_label": "Período do calendário",
+  "agenda_view_previous_day": "Ver dia anterior",
+  "agenda_view_next_day": "Ver próximo dia",
   "ADD_NEW_STRINGS_ABOVE_THIS_LINE_TO_PREVENT_MERGE_CONFLICTS": "↑↑↑↑↑↑↑↑↑↑↑↑↑ Adicione suas novas strings aqui em cima ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑"
 }
