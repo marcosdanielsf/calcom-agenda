@@ -43,6 +43,38 @@ describe("validateNexusCustomCode", () => {
   });
 });
 
+describe("validateNexusCustomCode contra contornos", () => {
+  it.each([
+    "<scr<!-- -->ipt>alert(1)</script>",
+    "<img src=x o<!-- -->nerror=alert(1)>",
+    '<a href="&#x6a;avascript:alert(1)">a</a>',
+    '<a href="java&#x09;script:alert(1)">a</a>',
+    '<a href="java&Tab;script&colon;alert(1)">a</a>',
+    '<a href="&#106avascript:alert(1)">a</a>',
+    "<a href=javascript:alert(1)>a</a>",
+    '<a href="  java\nscript:alert(1)">a</a>',
+    "<img/onerror=alert(1)>",
+    '<svg><a xlink:href="javascript:alert(1)">a</a></svg>',
+    "<style>a{background:url( 'javascript:alert(1)')}</style>",
+    "<style>a{background:url(javascript:alert(1))}</style>",
+  ])("recusa %j", (code) => {
+    expect(validateNexusCustomCode(code)).toEqual({ ok: false, reason: "script" });
+  });
+
+  it.each([
+    '<img alt="one = two">',
+    '<a href="https://x.com/ondemand=1">a</a>',
+    "<style>/* nao usar javascript: aqui */ .a{color:red}</style>",
+    "<p>Ative o JavaScript: obrigatorio</p>",
+    "<p>preco < base</p>",
+    "<style>.a::after{content:'<meta'}</style>",
+    '<p title="a > b" class="x">ok</p>',
+    '<a href="https://x.com/?q=javascript:">a</a>',
+  ])("aceita %j", (code) => {
+    expect(validateNexusCustomCode(code)).toEqual({ ok: true });
+  });
+});
+
 describe("splitNexusCustomCode", () => {
   it("separa CSS dos blocos style e devolve o resto como HTML sem comentários", () => {
     const code = "<style>.a{color:red}</style><!-- nota --><p>oi</p><STYLE media='x'>.b{color:blue}</STYLE>";
