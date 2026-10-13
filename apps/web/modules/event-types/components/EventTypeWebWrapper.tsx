@@ -57,6 +57,10 @@ const EventRecurringTab = dynamic(() =>
 
 const EventAppsTab = dynamic(() => import("./tabs/apps/EventAppsTab").then((mod) => mod.EventAppsTab));
 
+const EventAppearanceTab = dynamic(() =>
+  import("./tabs/appearance/EventAppearanceTab").then((mod) => mod.EventAppearanceTab)
+);
+
 const EventWebhooksTab = dynamic(() =>
   import("./tabs/webhooks/EventWebhooksTab").then((mod) => mod.EventWebhooksTab)
 );
@@ -225,6 +229,7 @@ const EventTypeWeb = ({
         isPendingApps={isPendingApps}
       />
     ),
+    appearance: <EventAppearanceTab />,
     webhooks: <EventWebhooksTab eventType={eventType} />,
   } as const;
 
@@ -257,6 +262,7 @@ const EventTypeWeb = ({
         EventAdvancedTab,
         EventRecurringTab,
         EventAppsTab,
+        EventAppearanceTab,
         EventWebhooksTab,
       ];
 
@@ -286,6 +292,7 @@ const EventTypeWeb = ({
         "advanced",
         "recurring",
         "apps",
+        "appearance",
         "webhooks",
       ])
       .optional()

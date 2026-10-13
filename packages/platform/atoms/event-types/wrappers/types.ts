@@ -3,4 +3,4 @@ import type { EventTypePlatformWrapperRef as EventSettingsFromRef } from "@calco
 
 export type { EventSettingsFromRef };
 
-export type PlatformTabs = keyof Omit<TabMap, "workflows" | "webhooks" | "instant" | "ai" | "apps">;
+export type PlatformTabs = keyof Omit<TabMap, "workflows" | "webhooks" | "instant" | "ai" | "apps" | "appearance">;
