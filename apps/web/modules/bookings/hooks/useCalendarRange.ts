@@ -3,7 +3,8 @@ import { weekdayToWeekIndex } from "@calcom/lib/dayjs";
 import useMediaQuery from "@calcom/lib/hooks/useMediaQuery";
 import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
 import { createParser, parseAsStringLiteral, useQueryState } from "nuqs";
-import { CALENDAR_RANGES, getRangeWindow } from "../lib/calendarRange";
+import { CALENDAR_RANGES } from "../lib/calendarRange";
+import { useDerivedCalendarState } from "./useDerivedCalendarState";
 
 const anchorParser = createParser({
   parse: (value: string) => {
@@ -21,9 +22,12 @@ export function useCalendarRange() {
   const [rangeParam, setRange] = useQueryState("range", parseAsStringLiteral(CALENDAR_RANGES));
   const [anchorParam, setAnchor] = useQueryState("date", anchorParser);
 
-  const range = rangeParam ?? (isMobile ? "day" : "week");
-  const anchor = anchorParam ?? dayjs().startOf("day");
-  const rangeWindow = getRangeWindow(range, anchor, userWeekStart);
+  const { range, anchor, rangeWindow } = useDerivedCalendarState({
+    rangeParam,
+    anchorParam,
+    isMobile,
+    weekStart: userWeekStart,
+  });
 
-  return { range, setRange, anchor, setAnchor, window, userWeekStart };
+  return { range, setRange, anchor, setAnchor, window: rangeWindow, userWeekStart };
 }

@@ -10,9 +10,10 @@ interface WeekPickerProps {
 
 export function WeekPicker({ anchor, label, onDateChange }: WeekPickerProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(anchor.toDate());
+  const anchorKey = anchor.format("YYYY-MM-DD");
   useEffect(() => {
-    setSelectedDate(anchor.toDate());
-  }, [anchor]);
+    setSelectedDate(dayjs(anchorKey).toDate());
+  }, [anchorKey]);
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
