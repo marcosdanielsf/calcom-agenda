@@ -1,0 +1,16 @@
+<style>
+  [data-nexus="booker"] {
+    background: #0b1220;
+    color: #eaeefb;
+  }
+  [data-nexus="slot"][aria-pressed="true"],
+  [data-nexus="slot"]:hover,
+  [data-nexus="cta"] {
+    background: #003ff1;
+    color: #ffffff;
+  }
+  [data-nexus="cover"] {
+    width: 290px;
+    max-width: 100%;
+  }
+</style>
