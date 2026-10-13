@@ -6,13 +6,7 @@ import type { IntegrationOAuthCallbackState } from "@calcom/app-store/types";
 import { WEBAPP_URL } from "@calcom/lib/constants";
 import type { App } from "@calcom/types/App";
 
-function gotoUrl(url: string, newTab?: boolean) {
-  if (newTab) {
-    window.open(url, "_blank");
-    return;
-  }
-  window.location.href = url;
-}
+import { navigateToInstallUrl } from "./installNavigation";
 
 type CustomUseMutationOptions =
   | Omit<UseMutationOptions<unknown, unknown, unknown, unknown>, "mutationKey" | "mutationFn" | "onSuccess">
@@ -93,17 +87,21 @@ function useAddAppMutation(_type: App["type"] | null, options?: UseAddAppMutatio
       // Check first that the URL is absolute, then check that it is of different origin from the current.
       if (externalUrl) {
         // TODO: For Omni installation to authenticate and come back to the page where installation was initiated, some changes need to be done in all apps' add callbacks
-        gotoUrl(json.url, json.newTab);
-        return { setupPending: !json.newTab, message: json.message };
+        // Dentro do quadro do Nexus o OAuth abre em aba propria; ao voltar o foco, as queries se renovam sozinhas.
+        const navigation = navigateToInstallUrl(window, json.url, {
+          external: true,
+          newTab: json.newTab,
+        });
+        return { setupPending: !navigation.openedInNewTab, message: json.message ?? navigation.message };
       } else if (json.url) {
-        gotoUrl(json.url, json.newTab);
+        navigateToInstallUrl(window, json.url, { external: false, newTab: json.newTab });
         return {
           setupPending:
             json?.url?.endsWith("/setup") || json?.url?.includes("/apps/installation/event-types"),
           message: json.message,
         };
       } else if (returnTo) {
-        gotoUrl(returnTo, false);
+        navigateToInstallUrl(window, returnTo, { external: false, newTab: false });
         return { setupPending: true, message: json.message };
       } else {
         return { setupPending: false, message: json.message };

@@ -45,7 +45,7 @@ export function AppCard({ app, credentials, searchText, userAdminTeams }: AppCar
   const mutation = useAddAppMutation(null, {
     onSuccess: (data) => {
       if (data?.setupPending) return;
-      showToast(t("app_successfully_installed"), "success");
+      showToast(data?.message || t("app_successfully_installed"), "success");
     },
     onError: (error) => {
       if (error instanceof Error) showToast(error.message || t("app_could_not_be_installed"), "error");
