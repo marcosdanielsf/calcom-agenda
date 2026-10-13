@@ -24,6 +24,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { ComponentProps } from "react";
 import React, { useEffect, useMemo, useState } from "react";
+import { nexusSettingsTabs } from "@calcom/web/modules/settings/nexusSettings";
 import { useNexusShell } from "~/shell/NexusShell";
 import Shell from "~/shell/Shell";
 
@@ -401,10 +402,7 @@ interface SettingsSidebarContainerProps {
   permissions?: SettingsPermissions;
 }
 
-// No modo Nexus a Configuracoes fica enxuta: o login e o acesso vem do Nexus, e conta, senha e chaves
-// de desenvolvedor nao sao da pessoa do outro lado do quadro.
-const NEXUS_HIDDEN_TABS = ["security", "developer"];
-const NEXUS_HIDDEN_CHILDREN = ["push_notifications"];
+// No modo Nexus a Configuracoes fica enxuta (regras em modules/settings/nexusSettings.ts).
 
 const SettingsSidebarContainer = ({
   className = "",
@@ -421,14 +419,7 @@ const SettingsSidebarContainer = ({
     isPbacEnabled: false,
     permissions,
   });
-  const tabsWithPermissions = nexus
-    ? allTabs
-        .filter((tab) => !NEXUS_HIDDEN_TABS.includes(tab.name))
-        .map((tab) => ({
-          ...tab,
-          children: tab.children?.filter((child) => !NEXUS_HIDDEN_CHILDREN.includes(child.name)),
-        }))
-    : allTabs;
+  const tabsWithPermissions = nexus ? nexusSettingsTabs(allTabs) : allTabs;
 
   return (
     <nav

@@ -183,7 +183,7 @@ async function getHandler(request: NextRequest) {
   const [subdomain] = domains;
   const teamLogos = await getTeamLogos(subdomain, isValidOrgDomain);
 
-  // Resolve all icon types to team logos, falling back to Cal.diy defaults.
+  // Resolve all icon types to team logos, falling back to Socialfy Agenda defaults.
   const type: LogoType = parsedQuery?.type && isValidLogoType(parsedQuery.type) ? parsedQuery.type : "logo";
   const logoDefinition = logoDefinitions[type];
   const filteredLogo = teamLogos[logoDefinition.source] ?? logoDefinition.fallback;

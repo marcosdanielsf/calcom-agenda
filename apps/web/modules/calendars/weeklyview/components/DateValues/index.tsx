@@ -63,8 +63,8 @@ export function DateValues({ showBorder, borderColor, days, containerNavRef }: P
             <button
               key={day.toString()}
               type="button"
-              className="flex flex-1 flex-col items-center pb-3 pt-2">
-              {day.format("dd")}{" "}
+              className="flex flex-1 flex-col items-center pb-3 pt-2 capitalize">
+              {formatDate(day)}{" "}
               <span
                 className={classNames(
                   "text-emphasis mt-1 flex h-8 w-8 items-center justify-center font-medium",
@@ -93,7 +93,7 @@ export function DateValues({ showBorder, borderColor, days, containerNavRef }: P
             <div
               key={day.toString()}
               className={classNames(
-                "flex flex-1 items-center justify-center py-3 text-xs font-medium uppercase",
+                "flex flex-1 items-center justify-center py-3 text-xs font-medium capitalize",
                 isToday && "text-default"
               )}>
               <span>

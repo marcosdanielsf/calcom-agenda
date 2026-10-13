@@ -1,12 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
-
 import { useLocale } from "@calcom/lib/hooks/useLocale";
-import useMediaQuery from "@calcom/lib/hooks/useMediaQuery";
 import { ToggleGroup } from "@calcom/ui/components/form";
 import { CalendarIcon, MenuIcon } from "@coss/ui/icons";
-
 import { useBookingsView } from "../hooks/useBookingsView";
 
 type ViewToggleButtonProps = {
@@ -16,21 +12,9 @@ type ViewToggleButtonProps = {
 export function ViewToggleButton({ bookingsV3Enabled }: ViewToggleButtonProps) {
   const { t } = useLocale();
   const [view, setView] = useBookingsView({ bookingsV3Enabled });
-  const isMobile = useMediaQuery("(max-width: 768px)");
-
-  useEffect(() => {
-    // Force list view on mobile
-    if (isMobile && view === "calendar") {
-      setView("list");
-    }
-  }, [isMobile, view, setView]);
-
-  if (isMobile) {
-    return null;
-  }
 
   return (
-    <div className="hidden sm:block">
+    <div className="shrink-0 [&_button]:min-h-10 [&_button]:min-w-10 [&_button]:px-2.5">
       <ToggleGroup
         value={view}
         onValueChange={(value: "list" | "calendar") => {
@@ -40,14 +24,14 @@ export function ViewToggleButton({ bookingsV3Enabled }: ViewToggleButtonProps) {
         options={[
           {
             value: "list",
-            label: "",
-            tooltip: t("list_view"),
+            label: t("agenda_view_list"),
+            dataTestId: "booking-view-list",
             iconLeft: <MenuIcon className="h-4 w-4" />,
           },
           {
             value: "calendar",
-            label: "",
-            tooltip: t("calendar_view"),
+            label: t("agenda_view_calendar"),
+            dataTestId: "booking-view-calendar",
             iconLeft: <CalendarIcon className="h-4 w-4" />,
           },
         ]}

@@ -9,6 +9,8 @@ import { isRedirectApp } from "@calcom/app-store/_utils/redirectApps";
 import useAddAppMutation from "@calcom/app-store/_utils/useAddAppMutation";
 import { doesAppSupportTeamInstall, isConferencing } from "@calcom/app-store/utils";
 import DisconnectIntegration from "@calcom/web/modules/apps/components/DisconnectIntegration";
+import { nexusAppPageSections } from "@calcom/web/modules/apps/nexusAppCatalog";
+import { useNexusShell } from "@calcom/web/modules/shell/NexusShell";
 import { AppOnboardingSteps } from "@calcom/lib/apps/appOnboardingSteps";
 import { getAppOnboardingUrl } from "@calcom/lib/apps/getAppOnboardingUrl";
 import { APP_NAME, COMPANY_NAME, SUPPORT_MAIL_ADDRESS, WEBAPP_URL } from "@calcom/lib/constants";
@@ -92,10 +94,15 @@ export const AppPage = ({
   const searchParams = useCompatSearchParams();
 
   const hasDescriptionItems = descriptionItems && descriptionItems.length > 0;
+  const nexusSections = nexusAppPageSections(useNexusShell(), slug, categories[0]);
+  const displayName = nexusSections.nameKey ? t(nexusSections.nameKey) : name;
+  const showGallery = hasDescriptionItems && nexusSections.showGallery;
   const utils = trpc.useUtils();
 
   const mutation = useAddAppMutation(null, {
     onSuccess: async (data) => {
+      // Autorizacao aberta em outra aba (quadro do Nexus): solta o botao, o aviso ja saiu.
+      if (data?.awaitingAuthorization) setIsLoading(false);
       if (data?.setupPending) return;
       setIsLoading(false);
       showToast(data?.message || t("app_successfully_installed"), "success");
@@ -310,7 +317,7 @@ export const AppPage = ({
 
   return (
     <div className="relative mt-4 flex-1 flex-col items-start justify-start px-4 md:mt-0 md:flex md:px-8 lg:flex-row lg:px-0">
-      {hasDescriptionItems && (
+      {showGallery && (
         <div className="align-center bg-subtle -ml-4 -mr-4 mb-4 flex min-h-[450px] w-auto basis-3/5 snap-x snap-mandatory flex-row overflow-auto whitespace-nowrap p-4  md:-ml-8 md:-mr-8 md:mb-8 md:p-8 lg:mx-0 lg:mb-0 lg:max-w-2xl lg:flex-col lg:justify-center lg:rounded-md">
           {descriptionItems ? (
             descriptionItems.map((descriptionItem, index) =>
@@ -338,7 +345,7 @@ export const AppPage = ({
       <div
         className={classNames(
           "sticky top-0 -mt-4 max-w-xl basis-2/5 pb-12 text-sm lg:pb-0",
-          hasDescriptionItems && "lg:ml-8"
+          showGallery && "lg:ml-8"
         )}>
         <div className="mb-8 flex pt-4">
           <header>
@@ -347,15 +354,22 @@ export const AppPage = ({
               <img
                 className={classNames(logo.includes("-dark") && "dark:invert", "min-h-16 min-w-16 h-16 w-16")}
                 src={logo}
-                alt={name}
+                alt={displayName}
               />
-              <h1 className="font-cal text-emphasis ml-4 text-3xl">{name}</h1>
+              <h1
+                className={
+                  nexusSections.compactTitle
+                    ? "text-emphasis ml-4 text-xl font-semibold"
+                    : "font-cal text-emphasis ml-4 text-3xl"
+                }>
+                {displayName}
+              </h1>
             </div>
             <h2 className="text-default text-sm font-medium">
               <Link
                 href={`categories/${categories[0]}`}
                 className="bg-subtle text-emphasis rounded-md p-1 text-xs capitalize">
-                {categories[0]}
+                {nexusSections.categoryKey ? t(nexusSections.categoryKey) : categories[0]}
               </Link>{" "}
               {paid && (
                 <>
@@ -371,9 +385,13 @@ export const AppPage = ({
                 </>
               )}
               •{" "}
-              <a target="_blank" rel="noreferrer" href={website}>
-                {t("published_by", { author })}
-              </a>
+              {nexusSections.showVendorContact ? (
+                <a target="_blank" rel="noreferrer" href={website}>
+                  {t("published_by", { author })}
+                </a>
+              ) : (
+                <span>{t("published_by", { author })}</span>
+              )}
             </h2>
             {isTemplate && (
               <Badge variant="red" className="mt-4">
@@ -416,13 +434,13 @@ export const AppPage = ({
         )}
 
         <div className="prose-sm prose prose-a:text-default prose-headings:text-emphasis prose-code:text-default prose-strong:text-default text-default mt-8">
-          {body}
+          {nexusSections.descriptionKey ? <p>{t(nexusSections.descriptionKey)}</p> : body}
         </div>
-        {!paid && (
+        {!paid && nexusSections.showPrice && (
           <>
             <h4 className="text-emphasis mt-8 font-semibold ">{t("pricing")}</h4>
             <span className="text-default">
-                {price === 0 ? (
+              {price === 0 ? (
                 t("free_to_use_apps")
               ) : (
                 <>
@@ -438,77 +456,81 @@ export const AppPage = ({
           </>
         )}
 
-        <h4 className="text-emphasis mb-2 mt-8 font-semibold ">{t("contact")}</h4>
-        <ul className="prose-sm -ml-1 -mr-1 leading-5">
-          {docs && (
-            <li>
-              <a
-                target="_blank"
-                rel="noreferrer"
-                className="text-emphasis text-sm font-normal no-underline hover:underline"
-                href={docs}>
-                <BookOpenIcon className="text-subtle -mt-1 mr-1 inline h-4 w-4" />
-                {t("documentation")}
-              </a>
-            </li>
-          )}
-          {website && (
-            <li>
-              <a
-                target="_blank"
-                rel="noreferrer"
-                className="text-emphasis font-normal no-underline hover:underline"
-                href={website}>
-                <ExternalLinkIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
-                {website.replace("https://", "")}
-              </a>
-            </li>
-          )}
-          {email && (
-            <li>
-              <a
-                target="_blank"
-                rel="noreferrer"
-                className="text-emphasis font-normal no-underline hover:underline"
-                href={`mailto:${email}`}>
-                <MailIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
+        {nexusSections.showVendorContact && (
+          <>
+            <h4 className="text-emphasis mb-2 mt-8 font-semibold ">{t("contact")}</h4>
+            <ul className="prose-sm -ml-1 -mr-1 leading-5">
+              {docs && (
+                <li>
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emphasis text-sm font-normal no-underline hover:underline"
+                    href={docs}>
+                    <BookOpenIcon className="text-subtle -mt-1 mr-1 inline h-4 w-4" />
+                    {t("documentation")}
+                  </a>
+                </li>
+              )}
+              {website && (
+                <li>
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emphasis font-normal no-underline hover:underline"
+                    href={website}>
+                    <ExternalLinkIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
+                    {website.replace("https://", "")}
+                  </a>
+                </li>
+              )}
+              {email && (
+                <li>
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emphasis font-normal no-underline hover:underline"
+                    href={`mailto:${email}`}>
+                    <MailIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
 
-                {email}
-              </a>
-            </li>
-          )}
-          {tos && (
-            <li>
-              <a
-                target="_blank"
-                rel="noreferrer"
-                className="text-emphasis font-normal no-underline hover:underline"
-                href={tos}>
-                <FileIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
-                {t("terms_of_service")}
-              </a>
-            </li>
-          )}
-          {privacy && (
-            <li>
-              <a
-                target="_blank"
-                rel="noreferrer"
-                className="text-emphasis font-normal no-underline hover:underline"
-                href={privacy}>
-                <ShieldIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
-                {t("privacy_policy")}
-              </a>
-            </li>
-          )}
-        </ul>
-        <hr className="border-subtle my-8 border" />
-        <span className="text-subtle block text-xs">
-          {t("every_app_published", { appName: APP_NAME, companyName: COMPANY_NAME })}
-        </span>
-        <a className="mt-2 block text-xs text-red-500" href={`mailto:${SUPPORT_MAIL_ADDRESS}`}>
-          <FlagIcon className="inline h-3 w-3" /> {t("report_app")}
-        </a>
+                    {email}
+                  </a>
+                </li>
+              )}
+              {tos && (
+                <li>
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emphasis font-normal no-underline hover:underline"
+                    href={tos}>
+                    <FileIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
+                    {t("terms_of_service")}
+                  </a>
+                </li>
+              )}
+              {privacy && (
+                <li>
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emphasis font-normal no-underline hover:underline"
+                    href={privacy}>
+                    <ShieldIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
+                    {t("privacy_policy")}
+                  </a>
+                </li>
+              )}
+            </ul>
+            <hr className="border-subtle my-8 border" />
+            <span className="text-subtle block text-xs">
+              {t("every_app_published", { appName: APP_NAME, companyName: COMPANY_NAME })}
+            </span>
+            <a className="mt-2 block text-xs text-red-500" href={`mailto:${SUPPORT_MAIL_ADDRESS}`}>
+              <FlagIcon className="inline h-3 w-3" /> {t("report_app")}
+            </a>
+          </>
+        )}
       </div>
     </div>
   );

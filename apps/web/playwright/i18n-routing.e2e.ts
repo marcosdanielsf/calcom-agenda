@@ -3,7 +3,7 @@ import { expect } from "@playwright/test";
 import { test } from "./lib/fixtures";
 
 // IMPORTANT: we do NOT load different translations based on URL locale
-// We load different translations based on the browser locale or Cal.diy User settings
+// We load different translations based on the browser locale or Socialfy Agenda User settings
 // This test suite is just to make sure that the routing works correctly
 test.describe("Locale-specific pages must not 404", () => {
   for (const locale of ["en", "fr"]) {

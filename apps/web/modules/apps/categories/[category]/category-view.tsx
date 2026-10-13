@@ -1,17 +1,31 @@
 "use client";
 
-import Link from "next/link";
-
-import { AppCard } from "@calcom/web/modules/apps/components/AppCard";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { SkeletonText } from "@calcom/ui/components/skeleton";
-
+import { AppCard } from "@calcom/web/modules/apps/components/AppCard";
 import type { CategoryDataProps } from "@lib/apps/categories/[category]/getStaticProps";
-
+import Link from "next/link";
+import { useNexusShell } from "~/shell/NexusShell";
 import Shell from "~/shell/Shell";
+import { appsForNexusCategory, nexusAppDescriptionKey, nexusAppNameKey } from "../../nexusAppCatalog";
 
 export default function Apps({ apps, category }: CategoryDataProps) {
   const { t, isLocaleReady } = useLocale();
+  const nexus = useNexusShell();
+  // No quadro do Nexus a loja mostra so o que a casa sustenta, com nome e descricao da casa.
+  const shownApps = nexus
+    ? appsForNexusCategory(apps ?? [], category).map((app) => {
+        const descriptionKey = nexusAppDescriptionKey(app.slug);
+        const nameKey = nexusAppNameKey(app.slug);
+        return {
+          ...app,
+          ...(descriptionKey ? { description: t(descriptionKey) } : {}),
+          ...(nameKey ? { name: t(nameKey) } : {}),
+        };
+      })
+    : apps;
+  const categoryLabel =
+    category && nexus ? t(category) : category && category[0].toUpperCase() + category.slice(1);
 
   return (
     <>
@@ -31,14 +45,14 @@ export default function Apps({ apps, category }: CategoryDataProps) {
             {category && (
               <span className="text-default gap-1">
                 <span>&nbsp;/&nbsp;</span>
-                {t("category_apps", { category: category[0].toUpperCase() + category?.slice(1) })}
+                {t("category_apps", { category: categoryLabel })}
               </span>
             )}
           </>
         }>
         <div className="mb-16">
           <div className="grid-col-1 grid grid-cols-1 gap-3 md:grid-cols-3">
-            {apps
+            {shownApps
               ?.sort((a, b) => (b.installCount || 0) - (a.installCount || 0))
               .map((app) => {
                 return <AppCard key={app.slug} app={app} />;

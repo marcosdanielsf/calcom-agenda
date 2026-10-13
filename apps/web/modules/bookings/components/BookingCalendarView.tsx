@@ -6,35 +6,28 @@ import type { CalendarEvent } from "@calcom/features/calendars/weeklyview/types/
 import { useGetTheme } from "@calcom/lib/hooks/useTheme";
 import { Calendar } from "@calcom/web/modules/calendars/weeklyview/components/Calendar";
 import { useBanners } from "@calcom/web/modules/shell/banners/useBanners";
-import { useEffect, useMemo } from "react";
+import { useNexusShell } from "@calcom/web/modules/shell/NexusShell";
+import { useMemo } from "react";
 import { useBookingDetailsSheetStore } from "../store/bookingDetailsSheetStore";
 import type { BookingOutput } from "../types";
 
 type BookingCalendarViewProps = {
   bookings: BookingOutput[];
-  currentWeekStart: dayjs.Dayjs;
-  onWeekStartChange: (weekStart: dayjs.Dayjs) => void;
+  rangeStart: dayjs.Dayjs;
+  dayCount: number;
 };
 
-export function BookingCalendarView({
-  bookings,
-  currentWeekStart,
-  onWeekStartChange,
-}: BookingCalendarViewProps) {
+export function BookingCalendarView({ bookings, rangeStart, dayCount }: BookingCalendarViewProps) {
   const setSelectedBookingUid = useBookingDetailsSheetStore((state) => state.setSelectedBookingUid);
   const selectedBookingUid = useBookingDetailsSheetStore((state) => state.selectedBookingUid);
   const { timezone } = useTimePreferences();
   const { resolvedTheme, forcedTheme } = useGetTheme();
   const { bannersHeight } = useBanners();
 
-  const startDate = useMemo(() => currentWeekStart.toDate(), [currentWeekStart]);
-  const endDate = useMemo(() => currentWeekStart.add(6, "day").toDate(), [currentWeekStart]);
+  const nexus = useNexusShell();
 
-  // Intentionally only runs on mount to trigger the initial currentWeekStart
-  useEffect(() => {
-    onWeekStartChange(currentWeekStart);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const startDate = useMemo(() => rangeStart.toDate(), [rangeStart]);
+  const endDate = useMemo(() => rangeStart.add(dayCount - 1, "day").toDate(), [rangeStart, dayCount]);
 
   const events = useMemo<CalendarEvent[]>(() => {
     const hasDarkTheme = !forcedTheme && resolvedTheme === "dark";
@@ -43,8 +36,8 @@ export function BookingCalendarView({
       .filter((booking) => {
         const bookingStart = dayjs(booking.startTime);
         return (
-          (bookingStart.isAfter(currentWeekStart) || bookingStart.isSame(currentWeekStart)) &&
-          bookingStart.isBefore(currentWeekStart.add(7, "day"))
+          (bookingStart.isAfter(rangeStart) || bookingStart.isSame(rangeStart)) &&
+          bookingStart.isBefore(rangeStart.add(dayCount, "day"))
         );
       })
       .sort((a, b) => {
@@ -70,13 +63,14 @@ export function BookingCalendarView({
           },
         };
       });
-  }, [bookings, currentWeekStart, resolvedTheme, forcedTheme]);
+  }, [bookings, rangeStart, dayCount, resolvedTheme, forcedTheme]);
 
   return (
     <>
       <div
-        className="border-subtle flex flex-1 flex-col overflow-y-auto overflow-x-hidden rounded-2xl border"
-        style={{ height: `calc(100vh - 6rem - ${bannersHeight}px)` }}>
+        data-testid="booking-calendar-grid"
+        className="border-subtle flex min-h-80 flex-1 flex-col overflow-y-auto overflow-x-auto rounded-2xl border"
+        style={{ height: `calc(100dvh - ${nexus ? "12rem" : "6rem"} - ${bannersHeight}px)` }}>
         <Calendar
           timezone={timezone}
           sortEvents
@@ -98,6 +92,7 @@ export function BookingCalendarView({
             }
           }}
           showTimezone
+          mobileSupported
           hideHeader
           updateCurrentTimeOnFocus
         />

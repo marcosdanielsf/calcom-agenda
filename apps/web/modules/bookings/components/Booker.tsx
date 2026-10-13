@@ -31,6 +31,7 @@ import { DialogContent } from "@calcom/ui/components/dialog";
 import { UnpublishedEntity } from "@calcom/ui/components/unpublished-entity";
 import TurnstileCaptcha from "@calcom/web/modules/auth/components/Turnstile";
 import { useSkipConfirmStep } from "@calcom/web/modules/bookings/hooks/useSkipConfirmStep";
+import { getNexusAppearance } from "@calcom/web/modules/bookings/lib/nexusAppearance";
 import { useNonEmptyScheduleDays } from "@calcom/web/modules/schedules/hooks/useNonEmptyScheduleDays";
 import { AnimatePresence, LazyMotion, m } from "framer-motion";
 import { useEffect, useMemo, useRef } from "react";
@@ -45,6 +46,7 @@ import { BookFormAsModal } from "./BookEventForm/BookFormAsModal";
 import { DatePicker } from "./DatePicker";
 import { DryRunMessage } from "./DryRunMessage";
 import { EventMeta } from "./EventMeta";
+import { NexusAppearanceLayer } from "./NexusAppearanceLayer";
 import { HavingTroubleFindingTime } from "./HavingTroubleFindingTime";
 import { LargeCalendar } from "./LargeCalendar";
 import { OverlayCalendar } from "./OverlayCalendar/OverlayCalendar";
@@ -334,6 +336,7 @@ const BookerComponent = ({
   return (
     <>
       {event.data && !isPlatform ? <BookingPageTagManager eventType={event.data} /> : <></>}
+      <NexusAppearanceLayer appearance={getNexusAppearance(event.data?.metadata)} />
       {(isBookingDryRunProp || isBookingDryRun(searchParams)) && <DryRunMessage isEmbed={isEmbed} />}
       <div
         className={classNames(
@@ -347,6 +350,7 @@ const BookerComponent = ({
         <div
           ref={animationScope}
           data-testid="booker-container"
+          data-nexus="booker"
           className={classNames(
             ...getBookerSizeClassNames(layout, bookerState, hideEventTypeDetails),
             `bg-default dark:bg-cal-muted grid max-w-full items-start dark:scheme-dark sm:transition-[width] sm:duration-300 sm:motion-reduce:transition-none md:flex-row`,

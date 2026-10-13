@@ -11,7 +11,10 @@ import { sortHosts } from "@calcom/lib/bookings/hostGroupUtils";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { validateIntervalLimitOrder } from "@calcom/lib/intervalLimits/validateIntervalLimitOrder";
 import { validateBookerLayouts } from "@calcom/lib/validateBookerLayouts";
-import { eventTypeBookingFields as eventTypeBookingFieldsSchema } from "@calcom/prisma/zod-utils";
+import {
+  eventTypeBookingFields as eventTypeBookingFieldsSchema,
+  nexusAppearanceSchema,
+} from "@calcom/prisma/zod-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -166,6 +169,12 @@ export const useEventTypeForm = ({
           length: z.union([z.string().transform((val) => +val), z.number()]).optional(),
           offsetStart: z.union([z.string().transform((val) => +val), z.number()]).optional(),
           bookingFields: eventTypeBookingFieldsSchema,
+          // A aba Aparência valida pelo resolver: `validate` no register é ignorado quando há resolver.
+          metadata: z
+            .object({ nexusAppearance: nexusAppearanceSchema.optional() })
+            .passthrough()
+            .nullable()
+            .optional(),
           locations: locationsResolver(t),
           calVideoSettings: z
             .object({

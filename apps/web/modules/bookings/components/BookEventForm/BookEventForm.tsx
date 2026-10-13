@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { FieldError } from "react-hook-form";
 import type { IUseBookingErrors, IUseBookingLoadingStates } from "../../hooks/useBookings";
+import { getNexusAppearance } from "@calcom/web/modules/bookings/lib/nexusAppearance";
 import { BookingFields } from "./BookingFields";
 import { FormSkeleton } from "./Skeleton";
 
@@ -108,6 +109,7 @@ export const BookEventForm = ({
   }
 
   const watchedCfToken = bookingForm.watch("cfToken");
+  const nexusButtonText = getNexusAppearance(eventType.metadata)?.buttonText;
 
   return (
     <div className="flex flex-col h-full">
@@ -245,13 +247,14 @@ export const BookEventForm = ({
               isVerificationCodeSending
             }
             className={classNames?.confirmButton}
+            data-nexus="cta"
             data-testid={rescheduleUid && bookingData ? "confirm-reschedule-button" : "confirm-book-button"}>
             {rescheduleUid && bookingData
               ? t("reschedule")
               : renderConfirmNotVerifyEmailButtonCond
                 ? isPaidEvent
                   ? t("pay_and_book")
-                  : t("confirm")
+                  : nexusButtonText || t("confirm")
                 : t("verify_email_button")}
           </Button>
         </div>

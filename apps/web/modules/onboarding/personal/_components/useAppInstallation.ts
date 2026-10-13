@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { isAwaitingAuthorization } from "@calcom/app-store/_utils/installNavigation";
+
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
 import { showToast } from "@calcom/ui/components/toast";
@@ -13,8 +15,10 @@ export const useAppInstallation = () => {
 
   const createInstallHandlers = (appSlug: string, onSuccess?: InstallSuccessCallback) => {
     return {
-      onSuccess: () => {
+      onSuccess: (data?: unknown) => {
         setInstallingAppSlug(null);
+        // OAuth aberto em outra aba (quadro do Nexus): ainda nao instalou, o aviso ja saiu pelo hook.
+        if (isAwaitingAuthorization(data)) return;
         utils.viewer.apps.integrations.invalidate();
         showToast(t("app_successfully_installed"), "success");
 

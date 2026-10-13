@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { eventTypeLocations, eventTypeSlug } from "@calcom/lib/zod/eventType";
 import { SchedulingType } from "@calcom/prisma/enums";
-import { EventTypeMetaDataSchema } from "@calcom/prisma/zod-utils";
+import { EventTypeMetaDataSchema, EventTypeMetaDataUpdateSchema } from "@calcom/prisma/zod-utils";
 
 type CalVideoSettings =
   | {
@@ -94,7 +94,7 @@ export const createEventTypeInput: z.ZodType<TCreateEventTypeInput> = z
     teamId: z.number().int().nullish(),
     schedulingType: z.nativeEnum(SchedulingType).nullish(),
     locations: eventTypeLocations,
-    metadata: EventTypeMetaDataSchema.optional(),
+    metadata: EventTypeMetaDataUpdateSchema.optional(),
     disableGuests: z.boolean().optional(),
     slotInterval: z.number().min(0).nullish(),
     minimumBookingNotice: z.number().int().min(0).optional(),
