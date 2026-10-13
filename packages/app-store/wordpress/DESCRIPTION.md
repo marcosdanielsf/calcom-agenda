@@ -2,8 +2,8 @@ Embedded booking pages right into your wordpress page.
 
 #### FEATURES
 
-- Add [Cal.diy](https://cal.com) booking calendar to any WordPress page/post with a simple shortcode.
-- Display your [Cal.diy](https://cal.com) booking calendar inline or in a popup.
+- Add Socialfy Agenda booking calendar to any WordPress page/post with a simple shortcode.
+- Display your Socialfy Agenda booking calendar inline or in a popup.
 - Customize your booking button to suit you.
 
 #### SHORTCODE

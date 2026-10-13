@@ -7,7 +7,7 @@
 
 # Stripe Payment Integration
 
-Stripe payment integration for Cal.diy. All code is licensed under the [MIT License](../../../LICENSE).
+Stripe payment integration for Socialfy Agenda. All code is licensed under the [MIT License](../../../LICENSE).
 
 ## Setting up Stripe
 

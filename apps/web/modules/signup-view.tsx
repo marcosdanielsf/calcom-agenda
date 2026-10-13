@@ -779,7 +779,7 @@ export default function Signup({
                     <img
                       src="/product-cards/product-of-the-day.svg"
                       className="h-[34px] w-full dark:invert"
-                      alt="Cal.diy was Product of the Day at ProductHunt"
+                      alt="Socialfy Agenda was Product of the Day at ProductHunt"
                     />
                   </div>
                   <div>
@@ -787,7 +787,7 @@ export default function Signup({
                     <img
                       src="/product-cards/product-of-the-week.svg"
                       className="h-[34px] w-full dark:invert"
-                      alt="Cal.diy was Product of the Week at ProductHunt"
+                      alt="Socialfy Agenda was Product of the Week at ProductHunt"
                     />
                   </div>
                   <div>
@@ -795,7 +795,7 @@ export default function Signup({
                     <img
                       src="/product-cards/product-of-the-month.svg"
                       className="h-[34px] w-full dark:invert"
-                      alt="Cal.diy was Product of the Month at ProductHunt"
+                      alt="Socialfy Agenda was Product of the Month at ProductHunt"
                     />
                   </div>
                 </div>

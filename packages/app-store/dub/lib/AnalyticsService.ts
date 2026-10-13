@@ -116,7 +116,7 @@ class DubService implements AnalyticsService {
       customerName: name,
       customerEmail: email,
       externalId: externalId ?? email,
-      eventName: eventName ?? "Cal.diy lead",
+      eventName: eventName ?? "Socialfy Agenda lead",
     });
   }
 }

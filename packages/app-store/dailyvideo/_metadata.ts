@@ -11,7 +11,7 @@ export const metadata = {
   url: "https://daily.co",
   categories: ["conferencing"],
   logo: "icon.svg",
-  publisher: "Cal.diy",
+  publisher: "Socialfy Agenda",
   category: "conferencing",
   slug: "daily-video",
   title: "Cal Video",

@@ -7,12 +7,12 @@ const log = logger.getSubLogger({ prefix: [`[[FeishuTenantCredential]`] });
 
 const msg = {
   en_us: {
-    title: "Welcome to Cal.diy!",
+    title: "Welcome to Socialfy Agenda!",
     content: [
       [
         {
           tag: "text",
-          text: "Cal.diy is an open source scheduling infrastructure.",
+          text: "Socialfy Agenda is an open source scheduling infrastructure.",
         },
       ],
       [
