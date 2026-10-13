@@ -8,6 +8,7 @@ import { Calendar } from "@calcom/web/modules/calendars/weeklyview/components/Ca
 import { useBanners } from "@calcom/web/modules/shell/banners/useBanners";
 import { useNexusShell } from "@calcom/web/modules/shell/NexusShell";
 import { useMemo } from "react";
+import { useGoogleBusyEvents } from "../hooks/useGoogleBusyEvents";
 import { useBookingDetailsSheetStore } from "../store/bookingDetailsSheetStore";
 import type { BookingOutput } from "../types";
 
@@ -29,10 +30,12 @@ export function BookingCalendarView({ bookings, rangeStart, dayCount }: BookingC
   const startDate = useMemo(() => rangeStart.toDate(), [rangeStart]);
   const endDate = useMemo(() => rangeStart.add(dayCount - 1, "day").toDate(), [rangeStart, dayCount]);
 
+  const googleBusyEvents = useGoogleBusyEvents({ rangeStart, dayCount, timezone, bookings });
+
   const events = useMemo<CalendarEvent[]>(() => {
     const hasDarkTheme = !forcedTheme && resolvedTheme === "dark";
 
-    return bookings
+    const bookingEvents = bookings
       .filter((booking) => {
         const bookingStart = dayjs(booking.startTime);
         return (
@@ -63,7 +66,9 @@ export function BookingCalendarView({ bookings, rangeStart, dayCount }: BookingC
           },
         };
       });
-  }, [bookings, rangeStart, dayCount, resolvedTheme, forcedTheme]);
+
+    return [...bookingEvents, ...googleBusyEvents];
+  }, [bookings, googleBusyEvents, rangeStart, dayCount, resolvedTheme, forcedTheme]);
 
   return (
     <>
