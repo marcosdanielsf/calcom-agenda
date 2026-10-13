@@ -1,7 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import z from "zod";
-
-import { excludeOrRequireEmailSchema } from "./zod-utils";
+import { EventTypeMetaDataSchema, excludeOrRequireEmailSchema } from "./zod-utils";
 
 describe("excludeOrRequireEmailSchema", () => {
   const parse = (input: string) => z.object({ v: excludeOrRequireEmailSchema }).safeParse({ v: input });
@@ -87,5 +86,42 @@ describe("excludeOrRequireEmailSchema", () => {
     it("rejects Unicode domains (ASCII-only)", () => {
       expect(parse("münchen.de").success).toBe(false);
     });
+  });
+});
+
+describe("EventTypeMetaDataSchema nexusAppearance", () => {
+  it("passa igual quando não há nexusAppearance", () => {
+    const result = EventTypeMetaDataSchema.safeParse({ multipleDuration: [15, 30] });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toEqual({ multipleDuration: [15, 30] });
+  });
+
+  it("preserva a chave nexusAppearance no parse", () => {
+    const nexusAppearance = {
+      coverImageUrl: "https://exemplo.com/capa.png",
+      primaryColor: "#003ff1",
+      backgroundColor: "#0b1220",
+      buttonText: "Agendar",
+      showTitle: false,
+      showDescription: true,
+      customCode: "<style>.a{color:red}</style>",
+    };
+    const result = EventTypeMetaDataSchema.safeParse({ multipleDuration: [30], nexusAppearance });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data?.nexusAppearance).toEqual(nexusAppearance);
+  });
+
+  it("falha quando o customCode tem script", () => {
+    const result = EventTypeMetaDataSchema.safeParse({
+      nexusAppearance: { customCode: "<script>alert(1)</script>" },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues[0].message).toBe("nexus_custom_code_script_not_allowed");
+  });
+
+  it("recusa cor que não é hex", () => {
+    expect(EventTypeMetaDataSchema.safeParse({ nexusAppearance: { primaryColor: "azul" } }).success).toBe(
+      false
+    );
   });
 });

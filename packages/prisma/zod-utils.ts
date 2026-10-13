@@ -12,6 +12,7 @@ import type {
 import z, { ZodNullable, ZodObject, ZodOptional } from "zod";
 import type { Prisma } from "./client";
 import { EventTypeCustomInputType } from "./enums";
+import { NEXUS_CUSTOM_CODE_MAX_LENGTH, validateNexusCustomCode } from "./nexus-custom-code";
 
 /** @see https://github.com/colinhacks/zod/issues/3155#issuecomment-2060045794 */
 export const emailRegex =
@@ -143,6 +144,28 @@ export type BookerLayoutSettings = z.infer<typeof bookerLayouts>;
 
 export const RequiresConfirmationThresholdUnits: z.ZodType<UnitTypeLongPlural> = z.enum(["hours", "minutes"]);
 
+const nexusHexColor = z.string().regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+
+export const nexusAppearanceSchema = z.object({
+  coverImageUrl: z.string().url().max(2048).nullish(),
+  primaryColor: nexusHexColor.nullish(),
+  backgroundColor: nexusHexColor.nullish(),
+  buttonText: z.string().trim().max(40).nullish(),
+  showTitle: z.boolean().optional(),
+  showDescription: z.boolean().optional(),
+  customCode: z
+    .string()
+    .max(NEXUS_CUSTOM_CODE_MAX_LENGTH)
+    .superRefine((code, ctx) => {
+      if (!validateNexusCustomCode(code).ok) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "nexus_custom_code_script_not_allowed" });
+      }
+    })
+    .nullish(),
+});
+
+export type NexusAppearance = z.infer<typeof nexusAppearanceSchema>;
+
 const _eventTypeMetaDataSchemaWithoutApps = z.object({
   smartContractAddress: z.string().optional(),
   blockchainId: z.number().optional(),
@@ -184,6 +207,7 @@ const _eventTypeMetaDataSchemaWithoutApps = z.object({
     })
     .optional(),
   bookerLayouts: bookerLayouts.optional(),
+  nexusAppearance: nexusAppearanceSchema.optional(),
 });
 
 export const eventTypeMetaDataSchemaWithUntypedApps = _eventTypeMetaDataSchemaWithoutApps.merge(
