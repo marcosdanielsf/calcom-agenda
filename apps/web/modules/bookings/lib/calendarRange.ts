@@ -61,9 +61,9 @@ export function groupBookingsByDay<T extends BookingWithStart>(
 
 export function countBookingsByDay(bookings: BookingWithStart[], timezone: string): Map<string, number> {
   const counts = new Map<string, number>();
-  for (const [key, list] of groupBookingsByDay(bookings, timezone)) {
+  groupBookingsByDay(bookings, timezone).forEach((list, key) => {
     counts.set(key, list.length);
-  }
+  });
   return counts;
 }
 
