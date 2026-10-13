@@ -69,7 +69,7 @@ export function BookingCalendarView({ bookings, rangeStart, dayCount }: BookingC
     <>
       <div
         data-testid="booking-calendar-grid"
-        className="border-subtle flex min-h-80 flex-1 flex-col overflow-y-auto overflow-x-hidden rounded-2xl border"
+        className="border-subtle flex min-h-80 flex-1 flex-col overflow-y-auto overflow-x-auto rounded-2xl border"
         style={{ height: `calc(100dvh - ${nexus ? "12rem" : "6rem"} - ${bannersHeight}px)` }}>
         <Calendar
           timezone={timezone}
@@ -92,6 +92,7 @@ export function BookingCalendarView({ bookings, rangeStart, dayCount }: BookingC
             }
           }}
           showTimezone
+          mobileSupported
           hideHeader
           updateCurrentTimeOnFocus
         />

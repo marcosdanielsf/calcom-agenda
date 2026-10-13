@@ -4617,5 +4617,7 @@
   "agenda_range_label": "Período do calendário",
   "agenda_view_previous_day": "Ver dia anterior",
   "agenda_view_next_day": "Ver próximo dia",
+  "calendar_mobile_not_supported_title": "Celular ainda não suportado",
+  "calendar_mobile_not_supported_description": "Use um navegador no computador para ver esta página",
   "ADD_NEW_STRINGS_ABOVE_THIS_LINE_TO_PREVENT_MERGE_CONFLICTS": "↑↑↑↑↑↑↑↑↑↑↑↑↑ Adicione suas novas strings aqui em cima ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑"
 }
