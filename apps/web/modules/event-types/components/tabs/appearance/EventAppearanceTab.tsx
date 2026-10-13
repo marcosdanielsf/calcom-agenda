@@ -5,6 +5,7 @@ import type { NexusAppearance } from "@calcom/prisma/zod-utils";
 import { Alert } from "@calcom/ui/components/alert";
 import { Button } from "@calcom/ui/components/button";
 import { Label, Switch, TextAreaField, TextField } from "@calcom/ui/components/form";
+import { TriangleAlertIcon } from "@coss/ui/icons";
 import { useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 import { buildPreviewDocument } from "./buildPreviewDocument";
@@ -120,13 +121,16 @@ export const EventAppearanceTab = () => {
   ];
 
   return (
-    <div className="stack-y-6" data-testid="nexus-appearance-tab">
-      <div className="border-subtle rounded-lg border p-6">
-        <h3 className="text-emphasis text-base font-semibold">{t("nexus_appearance_public_page")}</h3>
-        <p className="text-subtle mb-4 text-sm">{t("nexus_appearance_public_page_description")}</p>
-        <div className="grid gap-6 lg:grid-cols-2">
+    <div
+      className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]"
+      data-testid="nexus-appearance-tab">
+      <div className="stack-y-6 min-w-0">
+        <div className="border-subtle rounded-lg border p-6">
+          <h3 className="text-emphasis text-base font-semibold">{t("nexus_appearance_public_page")}</h3>
+          <p className="text-subtle mb-4 text-sm">{t("nexus_appearance_public_page_description")}</p>
           <div className="stack-y-4">
             <TextField
+              name="nexusCoverImageUrl"
               label={t("nexus_appearance_cover_image")}
               hint={t("nexus_appearance_cover_image_help")}
               data-testid="nexus-cover-url"
@@ -153,6 +157,7 @@ export const EventAppearanceTab = () => {
               />
             ))}
             <TextField
+              name="nexusButtonText"
               label={t("nexus_appearance_button_text")}
               data-testid="nexus-button-text"
               maxLength={40}
@@ -172,39 +177,43 @@ export const EventAppearanceTab = () => {
               onCheckedChange={(checked) => update("showDescription", checked)}
             />
           </div>
-          <div>
-            <Label>{t("nexus_appearance_preview")}</Label>
-            <iframe
-              sandbox=""
-              title={t("nexus_appearance_preview")}
-              data-testid="nexus-appearance-preview"
-              srcDoc={previewDocument}
-              className="border-subtle h-96 w-full rounded-md border"
-            />
-          </div>
+        </div>
+
+        <div className="border-subtle rounded-lg border p-6">
+          <h3 className="text-emphasis text-base font-semibold">{t("nexus_custom_code")}</h3>
+          <p className="text-subtle mb-3 text-sm">{t("nexus_custom_code_description")}</p>
+          <TextAreaField
+            name="nexusCustomCode"
+            label=""
+            spellCheck={false}
+            rows={10}
+            maxLength={20000}
+            className="font-mono text-sm"
+            data-testid="nexus-custom-code"
+            value={customCode}
+            onChange={(event) => update("customCode", event.target.value || null)}
+          />
+          {errorText("customCode") && (
+            <div data-testid="nexus-custom-code-error">
+              <Alert className="mt-2" severity="error" message={errorText("customCode")} />
+            </div>
+          )}
+          <p className="text-subtle mt-3 flex items-start gap-2 text-sm" data-testid="nexus-custom-code-warning">
+            <TriangleAlertIcon className="text-semantic-attention mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{t("nexus_custom_code_warning")}</span>
+          </p>
         </div>
       </div>
 
-      <div className="border-subtle rounded-lg border p-6">
-        <h3 className="text-emphasis text-base font-semibold">{t("nexus_custom_code")}</h3>
-        <p className="text-subtle mb-3 text-sm">{t("nexus_custom_code_description")}</p>
-        <TextAreaField
-          name="nexusCustomCode"
-          label=""
-          spellCheck={false}
-          rows={10}
-          maxLength={20000}
-          className="font-mono text-sm"
-          data-testid="nexus-custom-code"
-          value={customCode}
-          onChange={(event) => update("customCode", event.target.value || null)}
+      <div className="min-w-0 lg:sticky lg:top-4">
+        <Label>{t("nexus_appearance_preview")}</Label>
+        <iframe
+          sandbox=""
+          title={t("nexus_appearance_preview")}
+          data-testid="nexus-appearance-preview"
+          srcDoc={previewDocument}
+          className="border-subtle h-[28rem] w-full rounded-md border"
         />
-        {errorText("customCode") && (
-          <div data-testid="nexus-custom-code-error">
-            <Alert className="mt-2" severity="error" message={errorText("customCode")} />
-          </div>
-        )}
-        <Alert className="mt-3" severity="warning" message={t("nexus_custom_code_warning")} />
       </div>
     </div>
   );

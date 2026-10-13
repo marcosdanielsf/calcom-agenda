@@ -4640,5 +4640,8 @@
   "nexus_custom_code_description": "CSS e HTML aplicados só na página pública deste tipo.",
   "nexus_custom_code_warning": "Script de terceiro e HTML solto podem afetar privacidade, desempenho e o comportamento da página. Revise o conteúdo antes de salvar. Hoje aceita CSS e HTML; script fica desligado.",
   "nexus_custom_code_script_not_allowed": "Script não é aceito no código personalizado. Use só CSS e HTML.",
+  "nexus_app_name_google_calendar": "Google Agenda",
+  "agenda_view_list": "Lista",
+  "agenda_view_calendar": "Calendário",
   "ADD_NEW_STRINGS_ABOVE_THIS_LINE_TO_PREVENT_MERGE_CONFLICTS": "↑↑↑↑↑↑↑↑↑↑↑↑↑ Adicione suas novas strings aqui em cima ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑"
 }

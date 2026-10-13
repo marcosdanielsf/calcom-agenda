@@ -4808,5 +4808,8 @@
   "nexus_custom_code_description": "CSS and HTML applied only to the public page of this type.",
   "nexus_custom_code_warning": "Third-party script and loose HTML can affect privacy, performance and page behavior. Review the content before saving. Today it accepts CSS and HTML; script is turned off.",
   "nexus_custom_code_script_not_allowed": "Script is not accepted in the custom code. Use only CSS and HTML.",
+  "nexus_app_name_google_calendar": "Google Calendar",
+  "agenda_view_list": "List",
+  "agenda_view_calendar": "Calendar",
   "ADD_NEW_STRINGS_ABOVE_THIS_LINE_TO_PREVENT_MERGE_CONFLICTS": "↑↑↑↑↑↑↑↑↑↑↑↑↑ Add your new strings above here ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑"
 }

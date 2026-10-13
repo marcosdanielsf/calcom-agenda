@@ -94,7 +94,9 @@ export const AppPage = ({
   const searchParams = useCompatSearchParams();
 
   const hasDescriptionItems = descriptionItems && descriptionItems.length > 0;
-  const nexusSections = nexusAppPageSections(useNexusShell(), slug);
+  const nexusSections = nexusAppPageSections(useNexusShell(), slug, categories[0]);
+  const displayName = nexusSections.nameKey ? t(nexusSections.nameKey) : name;
+  const showGallery = hasDescriptionItems && nexusSections.showGallery;
   const utils = trpc.useUtils();
 
   const mutation = useAddAppMutation(null, {
@@ -315,7 +317,7 @@ export const AppPage = ({
 
   return (
     <div className="relative mt-4 flex-1 flex-col items-start justify-start px-4 md:mt-0 md:flex md:px-8 lg:flex-row lg:px-0">
-      {hasDescriptionItems && (
+      {showGallery && (
         <div className="align-center bg-subtle -ml-4 -mr-4 mb-4 flex min-h-[450px] w-auto basis-3/5 snap-x snap-mandatory flex-row overflow-auto whitespace-nowrap p-4  md:-ml-8 md:-mr-8 md:mb-8 md:p-8 lg:mx-0 lg:mb-0 lg:max-w-2xl lg:flex-col lg:justify-center lg:rounded-md">
           {descriptionItems ? (
             descriptionItems.map((descriptionItem, index) =>
@@ -343,7 +345,7 @@ export const AppPage = ({
       <div
         className={classNames(
           "sticky top-0 -mt-4 max-w-xl basis-2/5 pb-12 text-sm lg:pb-0",
-          hasDescriptionItems && "lg:ml-8"
+          showGallery && "lg:ml-8"
         )}>
         <div className="mb-8 flex pt-4">
           <header>
@@ -352,15 +354,22 @@ export const AppPage = ({
               <img
                 className={classNames(logo.includes("-dark") && "dark:invert", "min-h-16 min-w-16 h-16 w-16")}
                 src={logo}
-                alt={name}
+                alt={displayName}
               />
-              <h1 className="font-cal text-emphasis ml-4 text-3xl">{name}</h1>
+              <h1
+                className={
+                  nexusSections.compactTitle
+                    ? "text-emphasis ml-4 text-xl font-semibold"
+                    : "font-cal text-emphasis ml-4 text-3xl"
+                }>
+                {displayName}
+              </h1>
             </div>
             <h2 className="text-default text-sm font-medium">
               <Link
                 href={`categories/${categories[0]}`}
                 className="bg-subtle text-emphasis rounded-md p-1 text-xs capitalize">
-                {categories[0]}
+                {nexusSections.categoryKey ? t(nexusSections.categoryKey) : categories[0]}
               </Link>{" "}
               {paid && (
                 <>
@@ -427,7 +436,7 @@ export const AppPage = ({
         <div className="prose-sm prose prose-a:text-default prose-headings:text-emphasis prose-code:text-default prose-strong:text-default text-default mt-8">
           {nexusSections.descriptionKey ? <p>{t(nexusSections.descriptionKey)}</p> : body}
         </div>
-        {!paid && (
+        {!paid && nexusSections.showPrice && (
           <>
             <h4 className="text-emphasis mt-8 font-semibold ">{t("pricing")}</h4>
             <span className="text-default">

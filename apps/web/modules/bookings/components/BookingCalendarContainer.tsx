@@ -139,13 +139,15 @@ function BookingCalendarInner({
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+      <div
+        data-testid="booking-calendar-toolbar"
+        className="-mx-1 mb-4 flex items-center justify-between gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex shrink-0 items-center gap-2">
           <WeekPicker anchor={anchor} label={periodLabel} onDateChange={setAnchor} />
           {allowedFilterIds.length > 0 && <DataTableFilters.FilterBar table={table} />}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <div
             data-testid="booking-range-toggle"
             className="[&_button]:min-h-10 [&_button]:min-w-10"

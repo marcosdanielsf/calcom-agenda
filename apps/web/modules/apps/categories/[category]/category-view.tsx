@@ -7,16 +7,21 @@ import type { CategoryDataProps } from "@lib/apps/categories/[category]/getStati
 import Link from "next/link";
 import { useNexusShell } from "~/shell/NexusShell";
 import Shell from "~/shell/Shell";
-import { appsForNexusCategory, nexusAppDescriptionKey } from "../../nexusAppCatalog";
+import { appsForNexusCategory, nexusAppDescriptionKey, nexusAppNameKey } from "../../nexusAppCatalog";
 
 export default function Apps({ apps, category }: CategoryDataProps) {
   const { t, isLocaleReady } = useLocale();
   const nexus = useNexusShell();
-  // No quadro do Nexus a loja mostra so o que a casa sustenta, com descricao traduzida.
+  // No quadro do Nexus a loja mostra so o que a casa sustenta, com nome e descricao da casa.
   const shownApps = nexus
     ? appsForNexusCategory(apps ?? [], category).map((app) => {
-        const key = nexusAppDescriptionKey(app.slug);
-        return key ? { ...app, description: t(key) } : app;
+        const descriptionKey = nexusAppDescriptionKey(app.slug);
+        const nameKey = nexusAppNameKey(app.slug);
+        return {
+          ...app,
+          ...(descriptionKey ? { description: t(descriptionKey) } : {}),
+          ...(nameKey ? { name: t(nameKey) } : {}),
+        };
       })
     : apps;
   const categoryLabel =

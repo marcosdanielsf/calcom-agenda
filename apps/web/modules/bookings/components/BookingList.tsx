@@ -48,7 +48,7 @@ export function BookingList({
       totalRowCount={totalRowCount}
       variant="compact"
       paginationMode="standard"
-      separatorClassName="py-4 pl-6 text-xs uppercase leading-4"
+      separatorClassName="py-4 pl-6 text-xs font-medium leading-4"
       LoaderView={<SkeletonLoader />}
       EmptyView={
         <div className="flex items-center justify-center pt-2 xl:pt-0">

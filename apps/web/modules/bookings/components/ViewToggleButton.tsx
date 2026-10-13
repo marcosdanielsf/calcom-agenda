@@ -14,7 +14,7 @@ export function ViewToggleButton({ bookingsV3Enabled }: ViewToggleButtonProps) {
   const [view, setView] = useBookingsView({ bookingsV3Enabled });
 
   return (
-    <div className="[&_button]:min-h-10 [&_button]:min-w-10">
+    <div className="shrink-0 [&_button]:min-h-10 [&_button]:min-w-10 [&_button]:px-2.5">
       <ToggleGroup
         value={view}
         onValueChange={(value: "list" | "calendar") => {
@@ -24,16 +24,14 @@ export function ViewToggleButton({ bookingsV3Enabled }: ViewToggleButtonProps) {
         options={[
           {
             value: "list",
-            label: "",
+            label: t("agenda_view_list"),
             dataTestId: "booking-view-list",
-            tooltip: t("list_view"),
             iconLeft: <MenuIcon className="h-4 w-4" />,
           },
           {
             value: "calendar",
-            label: "",
+            label: t("agenda_view_calendar"),
             dataTestId: "booking-view-calendar",
-            tooltip: t("calendar_view"),
             iconLeft: <CalendarIcon className="h-4 w-4" />,
           },
         ]}
