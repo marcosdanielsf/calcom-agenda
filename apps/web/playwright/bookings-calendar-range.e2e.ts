@@ -25,38 +25,63 @@ async function restoreBookingsV3(prisma: Fixtures["prisma"], existing: { enabled
   }
 }
 
-function todayAtUtcHour(hour: number) {
-  const date = new Date();
-  date.setUTCHours(hour, 0, 0, 0);
-  return date;
+const LONDON = "Europe/London";
+const HOUR_MS = 60 * 60 * 1000;
+
+function londonDate(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: LONDON }).format(date);
+}
+
+// O navegador do Playwright roda em Europe/London e /bookings/upcoming só lista reserva que termina
+// depois de agora: as reservas nascem relativas a agora (+1 h e +3 h). Perto da meia-noite de Londres
+// (as duas cruzariam o dia) vão para amanhã às 10:00Z, que cai no mesmo dia em Londres.
+function bookingSlots() {
+  const now = new Date();
+  let first = new Date(now.getTime() + HOUR_MS);
+  const lastEnd = new Date(first.getTime() + 3 * HOUR_MS);
+  if (londonDate(first) !== londonDate(lastEnd)) {
+    first = new Date(now.getTime() + 24 * HOUR_MS);
+    first.setUTCHours(10, 0, 0, 0);
+  }
+  const second = new Date(first.getTime() + 2 * HOUR_MS);
+  return {
+    alphaStart: first,
+    alphaEnd: new Date(first.getTime() + HOUR_MS),
+    betaStart: second,
+    betaEnd: new Date(second.getTime() + HOUR_MS),
+    day: londonDate(first),
+    today: londonDate(now),
+  };
 }
 
 async function setup({ users, bookings, prisma }: Pick<Fixtures, "users" | "bookings" | "prisma">) {
   const existingFlag = await enableBookingsV3(prisma);
+  const slots = bookingSlots();
   const user = await users.create();
   const [typeA, typeB] = user.eventTypes;
 
   const alpha = await bookings.create(user.id, user.username, typeA.id, {
     title: "Reserva Alfa",
     status: BookingStatus.ACCEPTED,
-    startTime: todayAtUtcHour(15),
-    endTime: todayAtUtcHour(16),
+    startTime: slots.alphaStart,
+    endTime: slots.alphaEnd,
     attendees: { createMany: { data: [{ name: "Ana", email: "ana@example.com", timeZone: "UTC" }] } },
   });
   const beta = await bookings.create(user.id, user.username, typeB.id, {
     title: "Reserva Beta",
     status: BookingStatus.ACCEPTED,
-    startTime: todayAtUtcHour(17),
-    endTime: todayAtUtcHour(18),
+    startTime: slots.betaStart,
+    endTime: slots.betaEnd,
     attendees: { createMany: { data: [{ name: "Beto", email: "beto@example.com", timeZone: "UTC" }] } },
   });
 
   await user.apiLogin();
-  return { user, typeA, typeB, alpha, beta, existingFlag };
+  return { user, typeA, typeB, alpha, beta, existingFlag, slots };
 }
 
-async function openCalendar(page: Page, query = "") {
-  await page.goto(`/bookings/upcoming?view=calendar${query}`, { waitUntil: "domcontentloaded" });
+async function openCalendar(page: Page, query = "", date?: string) {
+  const dateParam = date ? `&date=${date}` : "";
+  await page.goto(`/bookings/upcoming?view=calendar${query}${dateParam}`, { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("booking-range-toggle")).toBeVisible();
 }
 
@@ -87,20 +112,25 @@ test.describe("Visao de calendario das reservas", () => {
   });
 
   test("semana atual abre com a linha de agora", async ({ page, users, bookings, prisma }) => {
-    const { existingFlag } = await setup({ users, bookings, prisma });
+    const { existingFlag, slots } = await setup({ users, bookings, prisma });
     try {
-      await openCalendar(page, "&range=week");
+      await openCalendar(page, "&range=day", slots.today);
       await expect(page.getByTestId("booking-calendar-grid")).toBeVisible();
       await expect(page.getByTestId("calendar-current-time")).toBeAttached();
+      const [year, month, day] = slots.today.split("-").map(Number);
+      const expected = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "UTC" }).format(
+        new Date(Date.UTC(year, month - 1, day))
+      );
+      await expect(page.getByTestId("pick-date")).toHaveText(expected);
     } finally {
       await restoreBookingsV3(prisma, existingFlag);
     }
   });
 
   test("reserva aparece na coluna do dia com titulo e hora", async ({ page, users, bookings, prisma }) => {
-    const { existingFlag, alpha } = await setup({ users, bookings, prisma });
+    const { existingFlag, alpha, slots } = await setup({ users, bookings, prisma });
     try {
-      await openCalendar(page, "&range=week");
+      await openCalendar(page, "&range=week", slots.day);
       const event = page.locator(`[data-booking-calendar-event][data-booking-uid="${alpha.uid}"]`);
       await expect(event).toBeVisible();
       await expect(event).toContainText("Reserva Alfa");
@@ -116,9 +146,9 @@ test.describe("Visao de calendario das reservas", () => {
     bookings,
     prisma,
   }) => {
-    const { existingFlag, alpha, beta, typeA } = await setup({ users, bookings, prisma });
+    const { existingFlag, alpha, beta, typeA, slots } = await setup({ users, bookings, prisma });
     try {
-      await openCalendar(page, "&range=week");
+      await openCalendar(page, "&range=week", slots.day);
       await expect(page.locator(`[data-booking-uid="${alpha.uid}"]`)).toBeVisible();
       await expect(page.locator(`[data-booking-uid="${beta.uid}"]`)).toBeVisible();
 
@@ -132,9 +162,9 @@ test.describe("Visao de calendario das reservas", () => {
   });
 
   test("clicar na reserva abre a ficha", async ({ page, users, bookings, prisma }) => {
-    const { existingFlag, alpha } = await setup({ users, bookings, prisma });
+    const { existingFlag, alpha, slots } = await setup({ users, bookings, prisma });
     try {
-      await openCalendar(page, "&range=week");
+      await openCalendar(page, "&range=week", slots.day);
       await page.locator(`[data-booking-calendar-event][data-booking-uid="${alpha.uid}"]`).click();
       const sheet = page.locator('[role="dialog"]');
       await expect(sheet).toBeVisible();
@@ -150,13 +180,13 @@ test.describe("Visao de calendario das reservas", () => {
     bookings,
     prisma,
   }) => {
-    const { existingFlag, alpha } = await setup({ users, bookings, prisma });
+    const { existingFlag, alpha, slots } = await setup({ users, bookings, prisma });
     try {
-      await openCalendar(page, "&range=month");
+      await openCalendar(page, "&range=month", slots.day);
       await expect(page.getByTestId("booking-month-grid")).toBeVisible();
 
-      const busyDay = page.locator('[data-testid^="booking-month-day-"][data-count="2"]');
-      await expect(busyDay).toHaveCount(1);
+      const busyDay = page.getByTestId(`booking-month-day-${slots.day}`);
+      await expect(busyDay).toHaveAttribute("data-count", "2");
       await expect(busyDay.getByTestId("booking-month-count")).toHaveText("2");
 
       await busyDay.click();
@@ -169,10 +199,10 @@ test.describe("Visao de calendario das reservas", () => {
   });
 
   test("no celular (390x844) a grade existe e abre em Dia", async ({ page, users, bookings, prisma }) => {
-    const { existingFlag, alpha } = await setup({ users, bookings, prisma });
+    const { existingFlag, alpha, slots } = await setup({ users, bookings, prisma });
     try {
       await page.setViewportSize({ width: 390, height: 844 });
-      await openCalendar(page);
+      await openCalendar(page, "", slots.day);
 
       await expect(page.getByTestId("booking-calendar-grid")).toBeVisible();
       await expect(page.getByTestId("booking-range-day")).toHaveAttribute("data-state", "on");
