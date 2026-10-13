@@ -9,6 +9,8 @@ import { isRedirectApp } from "@calcom/app-store/_utils/redirectApps";
 import useAddAppMutation from "@calcom/app-store/_utils/useAddAppMutation";
 import { doesAppSupportTeamInstall, isConferencing } from "@calcom/app-store/utils";
 import DisconnectIntegration from "@calcom/web/modules/apps/components/DisconnectIntegration";
+import { nexusAppPageSections } from "@calcom/web/modules/apps/nexusAppCatalog";
+import { useNexusShell } from "@calcom/web/modules/shell/NexusShell";
 import { AppOnboardingSteps } from "@calcom/lib/apps/appOnboardingSteps";
 import { getAppOnboardingUrl } from "@calcom/lib/apps/getAppOnboardingUrl";
 import { APP_NAME, COMPANY_NAME, SUPPORT_MAIL_ADDRESS, WEBAPP_URL } from "@calcom/lib/constants";
@@ -92,6 +94,7 @@ export const AppPage = ({
   const searchParams = useCompatSearchParams();
 
   const hasDescriptionItems = descriptionItems && descriptionItems.length > 0;
+  const nexusSections = nexusAppPageSections(useNexusShell(), slug);
   const utils = trpc.useUtils();
 
   const mutation = useAddAppMutation(null, {
@@ -416,13 +419,13 @@ export const AppPage = ({
         )}
 
         <div className="prose-sm prose prose-a:text-default prose-headings:text-emphasis prose-code:text-default prose-strong:text-default text-default mt-8">
-          {body}
+          {nexusSections.descriptionKey ? <p>{t(nexusSections.descriptionKey)}</p> : body}
         </div>
         {!paid && (
           <>
             <h4 className="text-emphasis mt-8 font-semibold ">{t("pricing")}</h4>
             <span className="text-default">
-                {price === 0 ? (
+              {price === 0 ? (
                 t("free_to_use_apps")
               ) : (
                 <>
@@ -438,77 +441,81 @@ export const AppPage = ({
           </>
         )}
 
-        <h4 className="text-emphasis mb-2 mt-8 font-semibold ">{t("contact")}</h4>
-        <ul className="prose-sm -ml-1 -mr-1 leading-5">
-          {docs && (
-            <li>
-              <a
-                target="_blank"
-                rel="noreferrer"
-                className="text-emphasis text-sm font-normal no-underline hover:underline"
-                href={docs}>
-                <BookOpenIcon className="text-subtle -mt-1 mr-1 inline h-4 w-4" />
-                {t("documentation")}
-              </a>
-            </li>
-          )}
-          {website && (
-            <li>
-              <a
-                target="_blank"
-                rel="noreferrer"
-                className="text-emphasis font-normal no-underline hover:underline"
-                href={website}>
-                <ExternalLinkIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
-                {website.replace("https://", "")}
-              </a>
-            </li>
-          )}
-          {email && (
-            <li>
-              <a
-                target="_blank"
-                rel="noreferrer"
-                className="text-emphasis font-normal no-underline hover:underline"
-                href={`mailto:${email}`}>
-                <MailIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
+        {nexusSections.showVendorContact && (
+          <>
+            <h4 className="text-emphasis mb-2 mt-8 font-semibold ">{t("contact")}</h4>
+            <ul className="prose-sm -ml-1 -mr-1 leading-5">
+              {docs && (
+                <li>
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emphasis text-sm font-normal no-underline hover:underline"
+                    href={docs}>
+                    <BookOpenIcon className="text-subtle -mt-1 mr-1 inline h-4 w-4" />
+                    {t("documentation")}
+                  </a>
+                </li>
+              )}
+              {website && (
+                <li>
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emphasis font-normal no-underline hover:underline"
+                    href={website}>
+                    <ExternalLinkIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
+                    {website.replace("https://", "")}
+                  </a>
+                </li>
+              )}
+              {email && (
+                <li>
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emphasis font-normal no-underline hover:underline"
+                    href={`mailto:${email}`}>
+                    <MailIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
 
-                {email}
-              </a>
-            </li>
-          )}
-          {tos && (
-            <li>
-              <a
-                target="_blank"
-                rel="noreferrer"
-                className="text-emphasis font-normal no-underline hover:underline"
-                href={tos}>
-                <FileIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
-                {t("terms_of_service")}
-              </a>
-            </li>
-          )}
-          {privacy && (
-            <li>
-              <a
-                target="_blank"
-                rel="noreferrer"
-                className="text-emphasis font-normal no-underline hover:underline"
-                href={privacy}>
-                <ShieldIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
-                {t("privacy_policy")}
-              </a>
-            </li>
-          )}
-        </ul>
-        <hr className="border-subtle my-8 border" />
-        <span className="text-subtle block text-xs">
-          {t("every_app_published", { appName: APP_NAME, companyName: COMPANY_NAME })}
-        </span>
-        <a className="mt-2 block text-xs text-red-500" href={`mailto:${SUPPORT_MAIL_ADDRESS}`}>
-          <FlagIcon className="inline h-3 w-3" /> {t("report_app")}
-        </a>
+                    {email}
+                  </a>
+                </li>
+              )}
+              {tos && (
+                <li>
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emphasis font-normal no-underline hover:underline"
+                    href={tos}>
+                    <FileIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
+                    {t("terms_of_service")}
+                  </a>
+                </li>
+              )}
+              {privacy && (
+                <li>
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emphasis font-normal no-underline hover:underline"
+                    href={privacy}>
+                    <ShieldIcon className="text-subtle -mt-px mr-1 inline h-4 w-4" />
+                    {t("privacy_policy")}
+                  </a>
+                </li>
+              )}
+            </ul>
+            <hr className="border-subtle my-8 border" />
+            <span className="text-subtle block text-xs">
+              {t("every_app_published", { appName: APP_NAME, companyName: COMPANY_NAME })}
+            </span>
+            <a className="mt-2 block text-xs text-red-500" href={`mailto:${SUPPORT_MAIL_ADDRESS}`}>
+              <FlagIcon className="inline h-3 w-3" /> {t("report_app")}
+            </a>
+          </>
+        )}
       </div>
     </div>
   );

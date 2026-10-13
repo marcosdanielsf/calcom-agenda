@@ -22,3 +22,13 @@ export function appsForNexusCategory<T extends { slug: string }>(
 export function nexusAppDescriptionKey(slug: string): string | null {
   return NEXUS_APP_DESCRIPTION_KEYS[slug] ?? null;
 }
+
+// Pagina de detalhes do app no quadro do Nexus: sem contato, site e aviso legal do fornecedor do
+// motor, e com a descricao traduzida quando a casa tem uma.
+export function nexusAppPageSections(
+  nexus: boolean,
+  slug: string
+): { showVendorContact: boolean; descriptionKey: string | null } {
+  if (!nexus) return { showVendorContact: true, descriptionKey: null };
+  return { showVendorContact: false, descriptionKey: nexusAppDescriptionKey(slug) };
+}
