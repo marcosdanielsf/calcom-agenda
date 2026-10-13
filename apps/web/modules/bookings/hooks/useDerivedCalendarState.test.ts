@@ -3,7 +3,12 @@ import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useDerivedCalendarState } from "./useDerivedCalendarState";
 
-const base = { rangeParam: null, anchorParam: null, isMobile: false, weekStart: 0 } as const;
+const base: Parameters<typeof useDerivedCalendarState>[0] = {
+  rangeParam: null,
+  anchorParam: null,
+  isMobile: false,
+  weekStart: 0,
+};
 
 describe("useDerivedCalendarState", () => {
   it("sem ?date, anchor e janela mantem a mesma referencia entre renders", () => {
