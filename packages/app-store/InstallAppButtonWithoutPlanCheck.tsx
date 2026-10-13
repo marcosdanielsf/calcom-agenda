@@ -1,10 +1,10 @@
 "use client";
 
+import { isInstallButtonLoading } from "@calcom/app-store/_utils/installNavigation";
 import type { UseAddAppMutationOptions } from "@calcom/app-store/_utils/useAddAppMutation";
 import useAddAppMutation from "@calcom/app-store/_utils/useAddAppMutation";
 import { deriveAppDictKeyFromType } from "@calcom/lib/deriveAppDictKeyFromType";
 import type { App } from "@calcom/types/App";
-
 import { InstallAppButtonMap } from "./apps.browser.generated";
 import type { InstallAppButtonProps } from "./types";
 
@@ -26,7 +26,7 @@ export const InstallAppButtonWithoutPlanCheck = (
           onClick: () => {
             mutation.mutate({ type: props.type });
           },
-          loading: mutation.data?.setupPending,
+          loading: isInstallButtonLoading(mutation.data),
         })}
       </>
     );

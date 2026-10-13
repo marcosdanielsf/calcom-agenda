@@ -7,6 +7,7 @@ import {
   INSTALL_CONTINUE_IN_NEW_TAB_MESSAGE,
   INSTALL_POPUP_BLOCKED_MESSAGE,
   isInsideFrame,
+  isInstallButtonLoading,
   navigateToInstallUrl,
   openPendingInstallWindow,
 } from "./installNavigation";
@@ -166,5 +167,20 @@ describe("navigateToInstallUrl", () => {
       openedInNewTab: true,
       awaitingAuthorization: false,
     });
+  });
+});
+
+describe("isInstallButtonLoading", () => {
+  it("instalacao pendente de autorizacao em outra aba nao prende o botao", () => {
+    expect(isInstallButtonLoading({ setupPending: true, awaitingAuthorization: true })).toBe(false);
+  });
+
+  it("setup pendente fora do quadro continua carregando, como antes", () => {
+    expect(isInstallButtonLoading({ setupPending: true })).toBe(true);
+  });
+
+  it("sem dado ou instalado nao carrega", () => {
+    expect(isInstallButtonLoading(undefined)).toBe(false);
+    expect(isInstallButtonLoading({ setupPending: false })).toBe(false);
   });
 });

@@ -65,3 +65,16 @@ export function navigateToInstallUrl(
   win.location.href = url;
   return { openedInNewTab: false, awaitingAuthorization: false };
 }
+
+/** Resultado da mutacao: OAuth aberto em outra aba a partir do quadro, ainda sem autorizacao. */
+export function isAwaitingAuthorization(data: unknown): boolean {
+  return (
+    typeof data === "object" && data !== null && (data as InstallNavigation).awaitingAuthorization === true
+  );
+}
+
+/** Botao de instalar: pendente de autorizacao em outra aba nao fica girando ate recarregar. */
+export function isInstallButtonLoading(data: unknown): boolean {
+  if (typeof data !== "object" || data === null) return false;
+  return (data as { setupPending?: boolean }).setupPending === true && !isAwaitingAuthorization(data);
+}
