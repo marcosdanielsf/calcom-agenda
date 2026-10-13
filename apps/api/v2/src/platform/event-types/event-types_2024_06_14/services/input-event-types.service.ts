@@ -16,6 +16,7 @@ import {
 } from "@calcom/platform-types";
 import { BookerLayouts } from "@calcom/prisma/zod-utils";
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { UserWithProfile } from "@/modules/users/users.repository";
 import { ConnectedCalendarsData } from "@/platform/calendars/outputs/connected-calendars.output";
 import { CalendarsService } from "@/platform/calendars/services/calendars.service";
 import { EventTypesRepository_2024_06_14 } from "@/platform/event-types/event-types_2024_06_14/event-types.repository";
@@ -42,7 +43,6 @@ import {
   transformRecurrenceApiToInternal,
   transformSeatsApiToInternal,
 } from "@/platform/event-types/event-types_2024_06_14/transformers";
-import { UserWithProfile } from "@/modules/users/users.repository";
 
 interface ValidationContext {
   eventTypeId?: number;
@@ -231,9 +231,14 @@ export class InputEventTypesService_2024_06_14 {
       ...rest
     } = inputEventType;
     const eventTypeDb = await this.eventTypesRepository.getEventTypeWithMetaData(eventTypeId);
-    const metadataTransformed = eventTypeDb?.metadata
-      ? EventTypeMetaDataSchema.parse(eventTypeDb.metadata)
-      : {};
+    const rawMetadata = eventTypeDb?.metadata;
+    const metadataTransformed = rawMetadata ? EventTypeMetaDataSchema.parse(rawMetadata) : {};
+    // Esta API não edita a aparência: o valor gravado volta igual, sem passar pela leitura
+    // tolerante, que trocaria um valor inválido por nulo e o gravaria em silêncio.
+    const rawNexusAppearance =
+      rawMetadata && typeof rawMetadata === "object" && !Array.isArray(rawMetadata)
+        ? (rawMetadata as Record<string, unknown>).nexusAppearance
+        : undefined;
 
     const confirmationPolicyTransformed = this.transformInputConfirmationPolicy(confirmationPolicy);
 
@@ -248,6 +253,9 @@ export class InputEventTypesService_2024_06_14 {
 
     const metadata: EventTypeMetadata = {
       ...metadataTransformed,
+      ...(rawNexusAppearance !== undefined
+        ? { nexusAppearance: rawNexusAppearance as NonNullable<EventTypeMetadata>["nexusAppearance"] }
+        : {}),
       ...(bookerLayouts !== undefined
         ? { bookerLayouts: this.transformInputBookerLayouts(bookerLayouts) }
         : {}),

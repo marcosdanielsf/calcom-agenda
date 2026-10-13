@@ -84,10 +84,11 @@ test.describe("Aparência do tipo de agendamento", () => {
     });
 
     await page.getByTestId("nexus-button-text").fill("Agendar");
-    await submitAndWaitForResponse(page, "/api/trpc/eventTypesHeavy/update?batch=1", {
-      action: () => page.locator("[data-testid=update-eventtype]").click(),
-      expectedStatusCode: 400,
-    });
+    const rejected = page.waitForResponse("/api/trpc/eventTypesHeavy/update?batch=1");
+    await page.locator("[data-testid=update-eventtype]").click();
+    const response = await rejected;
+    expect(response.status()).toBe(400);
+    expect(await response.text()).toContain("nexus_custom_code_script_not_allowed");
 
     await page.unroute("**/api/trpc/eventTypesHeavy/update*");
     await page.goto(editorUrl);
