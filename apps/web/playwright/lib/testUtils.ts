@@ -641,3 +641,34 @@ export async function cancelBookingFromBookingsList({
 export function getDefaultPassword(username: string) {
   return `${username.charAt(0).toUpperCase()}${username.slice(1)}1`;
 }
+type FeatureFlagPrisma = {
+  feature: {
+    findUnique: (args: { where: { slug: string } }) => Promise<{ enabled: boolean } | null>;
+    upsert: (args: {
+      where: { slug: string };
+      update: { enabled: boolean };
+      create: { slug: string; enabled: boolean; type: "OPERATIONAL" };
+    }) => Promise<unknown>;
+    update: (args: { where: { slug: string }; data: { enabled: boolean } }) => Promise<unknown>;
+    deleteMany: (args: { where: { slug: string } }) => Promise<unknown>;
+  };
+};
+
+/** Liga a flag global bookings-v3 (lista e grade novas) e devolve o estado anterior para restaurar. */
+export async function enableBookingsV3(prisma: FeatureFlagPrisma) {
+  const existing = await prisma.feature.findUnique({ where: { slug: "bookings-v3" } });
+  await prisma.feature.upsert({
+    where: { slug: "bookings-v3" },
+    update: { enabled: true },
+    create: { slug: "bookings-v3", enabled: true, type: "OPERATIONAL" },
+  });
+  return existing;
+}
+
+export async function restoreBookingsV3(prisma: FeatureFlagPrisma, existing: { enabled: boolean } | null) {
+  if (existing) {
+    await prisma.feature.update({ where: { slug: "bookings-v3" }, data: { enabled: existing.enabled } });
+  } else {
+    await prisma.feature.deleteMany({ where: { slug: "bookings-v3" } });
+  }
+}

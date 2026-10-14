@@ -21,6 +21,7 @@ import { useListAutoSelector } from "~/bookings/hooks/useListAutoSelector";
 import { DataTableFilters, DataTableSegment } from "~/data-table/components";
 import { useDataTable } from "~/data-table/hooks/useDataTable";
 import { useDisplayedFilterCount } from "~/data-table/hooks/useDisplayedFilterCount";
+import { nextSlotFrom } from "../lib/newBooking";
 import {
   BookingDetailsSheetStoreProvider,
   useBookingDetailsSheetStore,
@@ -28,6 +29,7 @@ import {
 import type { BookingListingStatus, BookingsGetOutput, RowData } from "../types";
 import { BookingDetailsSheet } from "./BookingDetailsSheet";
 import { BookingList } from "./BookingList";
+import { NewBookingSheet } from "./NewBookingSheet";
 import { ViewToggleButton } from "./ViewToggleButton";
 
 interface FilterButtonProps {
@@ -93,6 +95,7 @@ function BookingListInner({
   const setSelectedBookingUid = useBookingDetailsSheetStore((state) => state.setSelectedBookingUid);
   const router = useRouter();
   const [showFilters, setShowFilters] = useState(true);
+  const [newBookingStart, setNewBookingStart] = useState<Date | null>(null);
 
   // Handle auto-selection for list view
   useListAutoSelector(bookings);
@@ -190,6 +193,14 @@ function BookingListInner({
           <div className="hidden grow md:block" />
 
           <DataTableSegment.Select />
+          <Button
+            color="primary"
+            StartIcon="plus"
+            className="shrink-0"
+            data-testid="new-booking-button"
+            onClick={() => setNewBookingStart(nextSlotFrom(new Date()))}>
+            {t("agenda_new_booking")}
+          </Button>
           {/* <BookingsCsvDownload status={status} /> */}
           {/* No celular a barra rola: Lista/Calendário vem primeiro para não ficar escondido no fim */}
           {bookingsV3Enabled && (
@@ -234,6 +245,7 @@ function BookingListInner({
           bookingAuditEnabled={bookingAuditEnabled}
         />
       )}
+      <NewBookingSheet start={newBookingStart} onClose={() => setNewBookingStart(null)} />
     </>
   );
 }
