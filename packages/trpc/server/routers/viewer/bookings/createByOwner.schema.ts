@@ -11,9 +11,15 @@ export const ZCreateByOwnerInputSchema = z
     attendee: z.object({
       name: z.string().trim().min(1).max(200),
       email: z.string().trim().email().max(254),
-      phoneNumber: z.string().trim().max(32).optional(),
+      phoneNumber: z
+        .string()
+        .trim()
+        .regex(/^\+[1-9]\d{7,14}$/, "agenda_new_booking_phone_invalid")
+        .optional(),
     }),
     notes: z.string().trim().max(2000).optional(),
+    /** Falso = sem e-mail de confirmação (reserva registrada depois do fato, por exemplo). Padrão: avisa. */
+    notifyAttendee: z.boolean().optional(),
   })
   .refine((input) => new Date(input.end).getTime() > new Date(input.start).getTime(), {
     message: "agenda_new_booking_end_before_start",

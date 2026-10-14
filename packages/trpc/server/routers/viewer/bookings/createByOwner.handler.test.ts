@@ -43,7 +43,7 @@ describe("createByOwnerHandler", () => {
   });
 
   it("dono do tipo cria a reserva sem trava de disponibilidade nem de limite", async () => {
-    mockFindUnique.mockResolvedValue({ id: 7, userId: 42, hosts: [] });
+    mockFindUnique.mockResolvedValue({ id: 7, userId: 42 });
 
     const result = await createByOwnerHandler({ ctx, input });
 
@@ -75,14 +75,22 @@ describe("createByOwnerHandler", () => {
     });
   });
 
-  it("anfitrião de tipo de equipe também pode", async () => {
-    mockFindUnique.mockResolvedValue({ id: 7, userId: null, hosts: [{ userId: 1 }, { userId: 42 }] });
+  it("tipo de equipe (sem dono pessoal) é recusado mesmo para o anfitrião", async () => {
+    mockFindUnique.mockResolvedValue({ id: 7, userId: null });
+    await expect(createByOwnerHandler({ ctx, input })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(mockCreateBooking).not.toHaveBeenCalled();
+  });
+
+  it("notifyAttendee falso vira noEmail; omitido mantém o e-mail", async () => {
+    mockFindUnique.mockResolvedValue({ id: 7, userId: 42 });
+    await createByOwnerHandler({ ctx, input: { ...input, notifyAttendee: false } });
+    expect(mockCreateBooking.mock.calls[0][0].bookingData.noEmail).toBe(true);
     await createByOwnerHandler({ ctx, input });
-    expect(mockCreateBooking).toHaveBeenCalledTimes(1);
+    expect(mockCreateBooking.mock.calls[1][0].bookingData.noEmail).toBe(false);
   });
 
   it("tipo de outra conta responde como inexistente e não cria nada", async () => {
-    mockFindUnique.mockResolvedValue({ id: 7, userId: 1, hosts: [] });
+    mockFindUnique.mockResolvedValue({ id: 7, userId: 1 });
     await expect(createByOwnerHandler({ ctx, input })).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(mockCreateBooking).not.toHaveBeenCalled();
   });
@@ -96,7 +104,7 @@ describe("createByOwnerHandler", () => {
 
   it("limite de taxa estourado recusa antes de criar", async () => {
     mockRateLimit.mockRejectedValue(new Error("rate_limited"));
-    mockFindUnique.mockResolvedValue({ id: 7, userId: 42, hosts: [] });
+    mockFindUnique.mockResolvedValue({ id: 7, userId: 42 });
     await expect(createByOwnerHandler({ ctx, input })).rejects.toThrow("rate_limited");
     expect(mockCreateBooking).not.toHaveBeenCalled();
   });
@@ -107,7 +115,7 @@ describe("createByOwnerHandler", () => {
   });
 
   it("telefone e observação vazios ficam fora das respostas", async () => {
-    mockFindUnique.mockResolvedValue({ id: 7, userId: 42, hosts: [] });
+    mockFindUnique.mockResolvedValue({ id: 7, userId: 42 });
     await createByOwnerHandler({
       ctx,
       input: { ...input, attendee: { name: "Ana", email: "ana@example.com" }, notes: undefined },
@@ -121,6 +129,14 @@ describe("createByOwnerHandler", () => {
 describe("ZCreateByOwnerInputSchema", () => {
   it("recusa fim antes do início", () => {
     const parsed = ZCreateByOwnerInputSchema.safeParse({ ...input, end: "2026-10-14T15:00:00.000Z" });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("recusa telefone fora do E.164", () => {
+    const parsed = ZCreateByOwnerInputSchema.safeParse({
+      ...input,
+      attendee: { ...input.attendee, phoneNumber: "11 99999-8888" },
+    });
     expect(parsed.success).toBe(false);
   });
 

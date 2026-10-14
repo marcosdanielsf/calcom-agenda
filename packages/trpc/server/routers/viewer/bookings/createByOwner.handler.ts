@@ -1,4 +1,4 @@
-// Criado: 2026-10-13 22:3x BRT. O dono (ou anfitrião) do tipo de agendamento cria uma reserva de dentro
+// Criado: 2026-10-13 22:3x BRT. O dono do tipo de agendamento (tipo pessoal) cria uma reserva de dentro
 // da agenda, como no Google Agenda: sem trava de disponibilidade, de limite de reservas nem de antecedência.
 // O cliente recebe os mesmos e-mails e o evento vai para o calendário conectado como qualquer reserva.
 import type { CreateRegularBookingData } from "@calcom/features/bookings/lib/dto/types";
@@ -30,15 +30,16 @@ export async function createByOwnerHandler({ ctx, input }: CreateByOwnerOptions)
   }
   await checkRateLimitAndThrowError({ rateLimitingType: "core", identifier: `createByOwner:${ctx.user.id}` });
 
+  // Só tipo pessoal do próprio usuário: em tipo de equipe o serviço sortearia outro anfitrião com a
+  // disponibilidade pulada, e a reserva sumiria da grade de quem criou.
   const eventType = await prisma.eventType.findUnique({
     where: { id: input.eventTypeId },
-    select: { id: true, userId: true, hosts: { select: { userId: true } } },
+    select: { id: true, userId: true },
   });
-  const isOwnerOrHost =
-    !!eventType &&
-    (eventType.userId === ctx.user.id || eventType.hosts.some((host) => host.userId === ctx.user.id));
   // Tipo de outra conta responde como inexistente: não revela que o id existe.
-  if (!isOwnerOrHost) throw new TRPCError({ code: "NOT_FOUND", message: "event_type_not_found" });
+  if (!eventType || eventType.userId !== ctx.user.id) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "event_type_not_found" });
+  }
 
   const { attendee, notes } = input;
   const bookingData: CreateRegularBookingData & { responses: Record<string, unknown> } = {
@@ -49,6 +50,7 @@ export async function createByOwnerHandler({ ctx, input }: CreateByOwnerOptions)
     language: ctx.user.locale ?? "pt-BR",
     metadata: { nexusOrigin: NEXUS_OWNER_BOOKING_ORIGIN },
     creationSource: CreationSource.WEBAPP,
+    noEmail: input.notifyAttendee === false,
     responses: {
       name: attendee.name,
       email: attendee.email,
