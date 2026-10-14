@@ -94,7 +94,8 @@ export const AppPage = ({
   const searchParams = useCompatSearchParams();
 
   const hasDescriptionItems = descriptionItems && descriptionItems.length > 0;
-  const nexusSections = nexusAppPageSections(useNexusShell(), slug, categories[0]);
+  const isNexusShell = useNexusShell();
+  const nexusSections = nexusAppPageSections(isNexusShell, slug, categories[0]);
   const displayName = nexusSections.nameKey ? t(nexusSections.nameKey) : name;
   const showGallery = hasDescriptionItems && nexusSections.showGallery;
   const utils = trpc.useUtils();
@@ -230,6 +231,11 @@ export const AppPage = ({
 
     if (appDbQuery.isPending) {
       return <SkeletonButton className="h-10 w-24" />;
+    }
+
+    // Quadro do Nexus: a conexao do Google e unica e vive na aba Google Agenda.
+    if (isNexusShell && slug === "google-calendar" && existingCredentials.length === 0) {
+      return <p className="text-subtle mt-2 text-sm">{t("nexus_google_connection_lives_in_tab")}</p>;
     }
 
     const MultiInstallButtonEl = (

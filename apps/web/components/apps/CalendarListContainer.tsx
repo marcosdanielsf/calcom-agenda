@@ -13,6 +13,7 @@ import { showToast } from "@calcom/ui/components/toast";
 import { revalidateSettingsCalendars } from "@calcom/web/app/cache/path/settings/my-account";
 import AppListCardWebWrapper from "@calcom/web/modules/apps/components/AppListCardWebWrapper";
 import { SkeletonLoader } from "@calcom/web/modules/apps/components/SkeletonLoader";
+import { useNexusShell } from "@calcom/web/modules/shell/NexusShell";
 import { SelectedCalendarsSettingsWebWrapper } from "@calcom/web/modules/calendars/components/SelectedCalendarsSettingsWebWrapper";
 import SubHeadingTitleWithConnections from "@components/integrations/SubHeadingTitleWithConnections";
 import useRouterQuery from "@lib/hooks/useRouterQuery";
@@ -98,6 +99,7 @@ export function CalendarListContainer({
   fromOnboarding,
 }: CalendarListContainerProps): JSX.Element {
   const { t } = useLocale();
+  const isNexusShell = useNexusShell();
   const { error, setQuery: setError } = useRouterQuery("error");
 
   useEffect(() => {
@@ -168,13 +170,17 @@ export function CalendarListContainer({
         })}
         description={t(`no_category_apps_description_calendar`)}
         buttonRaw={
-          <Button
-            EndIcon="external-link"
-            color="secondary"
-            data-testid="connect-calendar-apps"
-            href="/apps/categories/calendar">
-            {t("connect_your_first_calendar")}
-          </Button>
+          isNexusShell ? (
+            <p className="text-subtle text-sm">{t("nexus_google_connection_lives_in_tab")}</p>
+          ) : (
+            <Button
+              EndIcon="external-link"
+              color="secondary"
+              data-testid="connect-calendar-apps"
+              href="/apps/categories/calendar">
+              {t("connect_your_first_calendar")}
+            </Button>
+          )
         }
       />
     );
