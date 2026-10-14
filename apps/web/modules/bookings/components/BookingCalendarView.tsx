@@ -9,6 +9,7 @@ import { useBanners } from "@calcom/web/modules/shell/banners/useBanners";
 import { useNexusShell } from "@calcom/web/modules/shell/NexusShell";
 import { useMemo } from "react";
 import { useGoogleBusyEvents } from "../hooks/useGoogleBusyEvents";
+import { NEW_BOOKING_GRID_STEP_MINUTES } from "../lib/newBooking";
 import { useBookingDetailsSheetStore } from "../store/bookingDetailsSheetStore";
 import type { BookingOutput } from "../types";
 
@@ -16,9 +17,16 @@ type BookingCalendarViewProps = {
   bookings: BookingOutput[];
   rangeStart: dayjs.Dayjs;
   dayCount: number;
+  /** Clique numa célula vazia da grade (como no Google Agenda) abre o novo agendamento naquele horário */
+  onEmptyCellClick?: (start: Date) => void;
 };
 
-export function BookingCalendarView({ bookings, rangeStart, dayCount }: BookingCalendarViewProps) {
+export function BookingCalendarView({
+  bookings,
+  rangeStart,
+  dayCount,
+  onEmptyCellClick,
+}: BookingCalendarViewProps) {
   const setSelectedBookingUid = useBookingDetailsSheetStore((state) => state.setSelectedBookingUid);
   const selectedBookingUid = useBookingDetailsSheetStore((state) => state.selectedBookingUid);
   const { timezone } = useTimePreferences();
@@ -85,7 +93,8 @@ export function BookingCalendarView({ bookings, rangeStart, dayCount }: BookingC
           startDate={startDate}
           endDate={endDate}
           gridCellsPerHour={4}
-          hoverEventDuration={0}
+          hoverEventDuration={onEmptyCellClick ? NEW_BOOKING_GRID_STEP_MINUTES : 0}
+          onEmptyCellClick={onEmptyCellClick}
           showBackgroundPattern={false}
           showBorder={false}
           borderColor="subtle"

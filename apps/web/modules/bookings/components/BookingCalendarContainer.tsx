@@ -1,5 +1,6 @@
 "use client";
 
+import { useTimePreferences } from "@calcom/features/bookings/lib";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
 import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
@@ -9,7 +10,7 @@ import { ButtonGroup } from "@calcom/ui/components/buttonGroup";
 import { ToggleGroup } from "@calcom/ui/components/form";
 import { ChevronLeftIcon, ChevronRightIcon } from "@coss/ui/icons";
 import { getCoreRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useBookingCalendarData } from "~/bookings/hooks/useBookingCalendarData";
 import { useBookingFilters } from "~/bookings/hooks/useBookingFilters";
 import { useCalendarAllowedFilters } from "~/bookings/hooks/useCalendarAllowedFilters";
@@ -25,11 +26,13 @@ import {
   getFetchEndDate,
   shiftAnchor,
 } from "../lib/calendarRange";
+import { defaultBookingStart } from "../lib/newBooking";
 import { BookingDetailsSheetStoreProvider } from "../store/bookingDetailsSheetStore";
 import type { BookingListingStatus, BookingsGetOutput, RowData } from "../types";
 import { BookingCalendarView } from "./BookingCalendarView";
 import { BookingDetailsSheet } from "./BookingDetailsSheet";
 import { BookingMonthView } from "./BookingMonthView";
+import { NewBookingSheet } from "./NewBookingSheet";
 import { ViewToggleButton } from "./ViewToggleButton";
 import { WeekPicker } from "./WeekPicker";
 
@@ -78,6 +81,8 @@ function BookingCalendarInner({
   const { t, i18n } = useLocale();
   const user = useMeQuery().data;
   const { range, setRange, anchor, setAnchor, window: rangeWindow, userWeekStart } = calendarRange;
+  const { timezone } = useTimePreferences();
+  const [newBookingStart, setNewBookingStart] = useState<Date | null>(null);
 
   const rowData = useBookingCalendarData({ data, status });
 
@@ -167,6 +172,16 @@ function BookingCalendarInner({
           <Button color="secondary" onClick={goToToday} className="min-h-10 capitalize">
             {t("today")}
           </Button>
+          <Button
+            color="primary"
+            StartIcon="plus"
+            className="min-h-10"
+            data-testid="new-booking-button"
+            onClick={() =>
+              setNewBookingStart(defaultBookingStart({ anchor, now: new Date(), timeZone: timezone }))
+            }>
+            {t("agenda_new_booking")}
+          </Button>
           <ButtonGroup combined>
             <Button color="secondary" onClick={goToPrevious} className="min-h-10 min-w-10">
               <span className="sr-only">{previousLabel}</span>
@@ -200,8 +215,11 @@ function BookingCalendarInner({
           bookings={bookings}
           rangeStart={rangeWindow.start}
           dayCount={range === "day" ? 1 : 7}
+          onEmptyCellClick={setNewBookingStart}
         />
       )}
+
+      <NewBookingSheet start={newBookingStart} onClose={() => setNewBookingStart(null)} />
 
       <BookingDetailsSheet
         userTimeZone={user?.timeZone}
