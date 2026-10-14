@@ -2,12 +2,14 @@ import type { FormValues } from "@calcom/features/eventtypes/lib/types";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { validateNexusCustomCode } from "@calcom/prisma/nexus-custom-code";
 import type { NexusAppearance } from "@calcom/prisma/zod-utils";
+import classNames from "@calcom/ui/classNames";
 import { Alert } from "@calcom/ui/components/alert";
 import { Button } from "@calcom/ui/components/button";
 import { Label, Switch, TextAreaField, TextField } from "@calcom/ui/components/form";
-import { TriangleAlertIcon } from "@coss/ui/icons";
+import { CheckIcon, TriangleAlertIcon } from "@coss/ui/icons";
 import { useMemo } from "react";
 import { useFormContext } from "react-hook-form";
+import { AGENDA_COLOR_PALETTE, eventTypeColorFromHex, paletteKeyFor } from "../../../lib/agendaColorPalette";
 import { buildPreviewDocument } from "./buildPreviewDocument";
 
 const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -73,6 +75,10 @@ export const EventAppearanceTab = () => {
   const length = form.watch("length");
   const customCode = appearance.customCode ?? "";
   const scriptBlocked = !validateNexusCustomCode(customCode).ok;
+  const calendarColor = form.watch("eventTypeColor") ?? null;
+  const selectedPaletteKey = paletteKeyFor(calendarColor);
+  const setCalendarColor = (value: ReturnType<typeof eventTypeColorFromHex> | null) =>
+    form.setValue("eventTypeColor", value, { shouldDirty: true });
 
   // Validação no resolver do form (useEventTypeForm); aqui só se mostra o erro de cada campo.
   const fieldErrors = (
@@ -124,7 +130,83 @@ export const EventAppearanceTab = () => {
     <div
       className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]"
       data-testid="nexus-appearance-tab">
-      <div className="border-subtle min-w-0 rounded-lg border p-6 lg:col-start-1 lg:row-start-1">
+      <div
+        className="border-subtle min-w-0 rounded-lg border p-6 lg:col-start-1 lg:row-start-1"
+        data-testid="nexus-calendar-color">
+        <h3 className="text-emphasis text-base font-semibold">{t("nexus_appearance_calendar_color")}</h3>
+        <p className="text-subtle mb-4 text-sm">{t("nexus_appearance_calendar_color_description")}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <div
+            className="flex flex-wrap items-center gap-2"
+            role="radiogroup"
+            aria-label={t("nexus_appearance_calendar_color")}
+            onKeyDown={(event) => {
+              const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+              if (!step) return;
+              event.preventDefault();
+              const count = AGENDA_COLOR_PALETTE.length;
+              const current = AGENDA_COLOR_PALETTE.findIndex((color) => color.key === selectedPaletteKey);
+              const next = AGENDA_COLOR_PALETTE[((current < 0 ? 0 : current) + step + count) % count];
+              setCalendarColor(eventTypeColorFromHex(next.hex));
+              event.currentTarget
+                .querySelector<HTMLButtonElement>(`[data-testid="nexus-color-${next.key}"]`)
+                ?.focus();
+            }}>
+            {AGENDA_COLOR_PALETTE.map((color, index) => {
+              const selected = selectedPaletteKey === color.key;
+              // Uma parada de Tab para o grupo inteiro; as setas andam entre as cores.
+              const tabStop = selected || (!selectedPaletteKey && index === 0);
+              return (
+                <button
+                  type="button"
+                  key={color.key}
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={t(`agenda_color_${color.key}`)}
+                  title={t(`agenda_color_${color.key}`)}
+                  tabIndex={tabStop ? 0 : -1}
+                  data-testid={`nexus-color-${color.key}`}
+                  onClick={() => setCalendarColor(eventTypeColorFromHex(color.hex))}
+                  className={classNames(
+                    "flex h-8 w-8 items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emphasis focus-visible:ring-offset-2",
+                    selected && "ring-emphasis ring-2 ring-offset-2"
+                  )}
+                  style={{ backgroundColor: color.hex }}>
+                  {selected && (
+                    <CheckIcon
+                      className={classNames("h-4 w-4", color.ink === "dark" ? "text-black" : "text-white")}
+                      aria-hidden="true"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {calendarColor && !selectedPaletteKey && (
+            <span
+              data-testid="nexus-color-custom"
+              title={t("nexus_appearance_calendar_color_custom")}
+              className="ring-emphasis flex h-8 w-8 items-center justify-center rounded-full ring-2 ring-offset-2"
+              style={{ backgroundColor: calendarColor.lightEventTypeColor }}>
+              <CheckIcon className="h-4 w-4 text-white" aria-hidden="true" />
+            </span>
+          )}
+          <Button
+            type="button"
+            color={calendarColor ? "minimal" : "secondary"}
+            size="sm"
+            data-testid="nexus-color-none"
+            aria-pressed={!calendarColor}
+            onClick={() => setCalendarColor(null)}>
+            {t("nexus_appearance_calendar_color_none")}
+          </Button>
+        </div>
+        {calendarColor && !selectedPaletteKey && (
+          <p className="text-subtle mt-3 text-sm">{t("nexus_appearance_calendar_color_custom")}</p>
+        )}
+      </div>
+
+      <div className="border-subtle min-w-0 rounded-lg border p-6 lg:col-start-1 lg:row-start-2">
         <h3 className="text-emphasis text-base font-semibold">{t("nexus_appearance_public_page")}</h3>
         <p className="text-subtle mb-4 text-sm">{t("nexus_appearance_public_page_description")}</p>
         <div className="stack-y-4">
@@ -179,7 +261,7 @@ export const EventAppearanceTab = () => {
       </div>
 
       {/* Ordem no celular: formulário, prévia, código. No computador a prévia fica na coluna da direita, parada ao rolar. */}
-      <div className="min-w-0 self-start lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+      <div className="min-w-0 self-start lg:sticky lg:top-4 lg:col-start-2 lg:row-span-3 lg:row-start-1">
         <Label>{t("nexus_appearance_preview")}</Label>
         <iframe
           sandbox=""
@@ -190,7 +272,7 @@ export const EventAppearanceTab = () => {
         />
       </div>
 
-      <div className="border-subtle min-w-0 rounded-lg border p-6 lg:col-start-1 lg:row-start-2">
+      <div className="border-subtle min-w-0 rounded-lg border p-6 lg:col-start-1 lg:row-start-3">
         <h3 className="text-emphasis text-base font-semibold">{t("nexus_custom_code")}</h3>
         <p className="text-subtle mb-3 text-sm">{t("nexus_custom_code_description")}</p>
         <TextAreaField

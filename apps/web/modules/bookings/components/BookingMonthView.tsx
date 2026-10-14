@@ -2,6 +2,7 @@
 
 import dayjs from "@calcom/dayjs";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import { useGetTheme } from "@calcom/lib/hooks/useTheme";
 import classNames from "@calcom/ui/classNames";
 import { useMemo } from "react";
 import { buildMonthGrid, countBookingsByDay, groupBookingsByDay } from "../lib/calendarRange";
@@ -18,6 +19,8 @@ const MAX_TITLES = 2;
 
 export function BookingMonthView({ bookings, anchor, weekStart, onDayClick }: BookingMonthViewProps) {
   const { i18n } = useLocale();
+  const { resolvedTheme, forcedTheme } = useGetTheme();
+  const colorKey = !forcedTheme && resolvedTheme === "dark" ? "darkEventTypeColor" : "lightEventTypeColor";
   // Mesmo fuso da grade Dia/Semana, que usa o relógio do navegador
   const timezone = useMemo(() => dayjs.tz.guess(), []);
 
@@ -79,13 +82,21 @@ export function BookingMonthView({ bookings, anchor, weekStart, onDayClick }: Bo
                     </span>
                   )}
                 </span>
-                {dayBookings.slice(0, MAX_TITLES).map((booking) => (
-                  <span
-                    key={booking.uid}
-                    className="bg-subtle text-default hidden truncate rounded px-1 text-xs sm:block">
-                    {booking.title}
-                  </span>
-                ))}
+                {dayBookings.slice(0, MAX_TITLES).map((booking) => {
+                  const color = booking.eventType?.eventTypeColor?.[colorKey];
+                  return (
+                    <span
+                      key={booking.uid}
+                      data-testid="booking-month-title"
+                      className={classNames(
+                        "bg-subtle text-default hidden truncate rounded px-1 text-xs sm:block",
+                        color && "border-l-2 pl-1.5"
+                      )}
+                      style={color ? { borderLeftColor: color } : undefined}>
+                      {booking.title}
+                    </span>
+                  );
+                })}
               </button>
             );
           })}
