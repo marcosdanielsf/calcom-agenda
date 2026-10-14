@@ -2,28 +2,10 @@
 // e pelo botão da barra, como no Google Agenda.
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-import type { Fixtures } from "./lib/fixtures";
 import { test } from "./lib/fixtures";
+import { enableBookingsV3, restoreBookingsV3 } from "./lib/testUtils";
 
 test.afterEach(({ users }) => users.deleteAll());
-
-async function enableBookingsV3(prisma: Fixtures["prisma"]) {
-  const existing = await prisma.feature.findUnique({ where: { slug: "bookings-v3" } });
-  await prisma.feature.upsert({
-    where: { slug: "bookings-v3" },
-    update: { enabled: true },
-    create: { slug: "bookings-v3", enabled: true, type: "OPERATIONAL" },
-  });
-  return existing;
-}
-
-async function restoreBookingsV3(prisma: Fixtures["prisma"], existing: { enabled: boolean } | null) {
-  if (existing) {
-    await prisma.feature.update({ where: { slug: "bookings-v3" }, data: { enabled: existing.enabled } });
-  } else {
-    await prisma.feature.deleteMany({ where: { slug: "bookings-v3" } });
-  }
-}
 
 const LONDON = "Europe/London";
 
@@ -31,13 +13,32 @@ function londonDate(date: Date) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: LONDON }).format(date);
 }
 
-// Célula de amanhã às 22:00Z: fora de qualquer horário de disponibilidade do usuário de teste (09 às 17),
-// justamente o que o Google Agenda permite e a reserva pública recusaria.
+function utcOffsetMinutes(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: LONDON,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const hour = Number(parts.find((part) => part.type === "hour")?.value);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value);
+  return (hour * 60 + minute - (date.getUTCHours() * 60 + date.getUTCMinutes()) + 1440) % 1440;
+}
+
+// Célula às 22:00Z de um dia próximo SEM troca de horário de verão em Londres (num dia de 25 horas a grade
+// desalinha), fora de qualquer disponibilidade do usuário de teste (09 às 17): o Google permite, o booker não.
 function slotOutsideAvailability() {
-  const slot = new Date();
-  slot.setUTCDate(slot.getUTCDate() + 1);
-  slot.setUTCHours(22, 0, 0, 0);
-  return slot;
+  for (let ahead = 1; ahead <= 5; ahead++) {
+    const dayStart = new Date();
+    dayStart.setUTCDate(dayStart.getUTCDate() + ahead);
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart.getTime() + 23 * 60 * 60 * 1000 + 59 * 60 * 1000);
+    if (utcOffsetMinutes(dayStart) !== utcOffsetMinutes(dayEnd)) continue;
+    const slot = new Date(dayStart);
+    slot.setUTCHours(22, 0, 0, 0);
+    return slot;
+  }
+  throw new Error("nenhum dia sem troca de horário nos próximos 5 dias");
 }
 
 async function openWeek(page: Page, date: string) {

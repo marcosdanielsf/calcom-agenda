@@ -3,12 +3,13 @@
 // (ou no botão da barra) abre esta folha com o horário já preenchido; salvar cria a reserva pelo dono.
 
 import dayjs from "@calcom/dayjs";
-import { useTimePreferences } from "@calcom/features/bookings/lib";
+import { useTimePreferences } from "@calcom/features/bookings/lib/timePreferences";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { trpc } from "@calcom/trpc/react";
+import useMeQuery from "@calcom/trpc/react/hooks/useMeQuery";
 import { Alert } from "@calcom/ui/components/alert";
 import { Button } from "@calcom/ui/components/button";
-import { Label, Select, TextAreaField, TextField } from "@calcom/ui/components/form";
+import { Label, Select, Switch, TextAreaField, TextField } from "@calcom/ui/components/form";
 import {
   Sheet,
   SheetBody,
@@ -23,6 +24,7 @@ import { useMemo, useState } from "react";
 import {
   buildBookingWindow,
   describeMutationError,
+  E164_PHONE,
   normalizeBrazilPhone,
   splitSlot,
 } from "../lib/newBooking";
@@ -51,6 +53,7 @@ export function NewBookingSheet({ start, onClose }: NewBookingSheetProps) {
 function NewBookingForm({ start, onClose }: { start: Date; onClose: () => void }) {
   const { t, i18n } = useLocale();
   const { timezone } = useTimePreferences();
+  const user = useMeQuery().data;
   const utils = trpc.useUtils();
 
   const eventTypesQuery = trpc.viewer.eventTypes.listWithTeam.useQuery();
@@ -71,17 +74,18 @@ function NewBookingForm({ start, onClose }: { start: Date; onClose: () => void }
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [notifyAttendee, setNotifyAttendee] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const service = services.find((option) => option.value === serviceId) ?? services[0] ?? null;
   // A duração é a do serviço: o motor recusa qualquer outra (validateEventLength).
   const duration = service?.length ?? 30;
-  const window = buildBookingWindow({ date, time, durationMinutes: duration, timeZone: timezone });
+  const bookingWindow = buildBookingWindow({ date, time, durationMinutes: duration, timeZone: timezone });
 
   const summary = useMemo(() => {
-    if (!window) return null;
-    const startAt = dayjs(window.start).tz(timezone);
-    const endAt = dayjs(window.end).tz(timezone);
+    if (!bookingWindow) return null;
+    const startAt = dayjs(bookingWindow.start).tz(timezone);
+    const endAt = dayjs(bookingWindow.end).tz(timezone);
     const day = new Intl.DateTimeFormat(i18n.language, {
       weekday: "short",
       day: "numeric",
@@ -89,7 +93,7 @@ function NewBookingForm({ start, onClose }: { start: Date; onClose: () => void }
       timeZone: timezone,
     }).format(startAt.toDate());
     return `${day}, ${startAt.format("HH:mm")} a ${endAt.format("HH:mm")}`;
-  }, [window, timezone, i18n.language]);
+  }, [bookingWindow, timezone, i18n.language]);
 
   const mutation = trpc.viewer.bookings.createByOwner.useMutation({
     onSuccess: async () => {
@@ -103,22 +107,25 @@ function NewBookingForm({ start, onClose }: { start: Date; onClose: () => void }
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!service) return;
-    if (!window) {
+    if (!bookingWindow) {
       setError(t("agenda_new_booking_invalid_time"));
+      return;
+    }
+    const phoneNumber = normalizeBrazilPhone(phone);
+    if (phoneNumber && !E164_PHONE.test(phoneNumber)) {
+      setError(t("agenda_new_booking_phone_invalid"));
       return;
     }
     setError(null);
     mutation.mutate({
       eventTypeId: service.value,
-      start: window.start,
-      end: window.end,
-      timeZone: timezone,
-      attendee: {
-        name: name.trim(),
-        email: email.trim(),
-        phoneNumber: normalizeBrazilPhone(phone),
-      },
+      start: bookingWindow.start,
+      end: bookingWindow.end,
+      // Horário vem do fuso da grade; o participante fica com o fuso da conta, que é o do e-mail.
+      timeZone: user?.timeZone ?? timezone,
+      attendee: { name: name.trim(), email: email.trim(), phoneNumber },
       notes: notes.trim() || undefined,
+      notifyAttendee,
     });
   };
 
@@ -211,6 +218,12 @@ function NewBookingForm({ start, onClose }: { start: Date; onClose: () => void }
             data-testid="new-booking-notes"
             onChange={(event) => setNotes(event.target.value)}
           />
+          <Switch
+            label={t("agenda_new_booking_notify")}
+            data-testid="new-booking-notify"
+            checked={notifyAttendee}
+            onCheckedChange={setNotifyAttendee}
+          />
           {error && (
             <div data-testid="new-booking-error">
               <Alert severity="error" message={error} />
@@ -226,7 +239,7 @@ function NewBookingForm({ start, onClose }: { start: Date; onClose: () => void }
               type="submit"
               color="primary"
               loading={mutation.isPending}
-              disabled={!service || !window}
+              disabled={!service || !bookingWindow}
               data-testid="new-booking-submit">
               {t("agenda_new_booking_save")}
             </Button>

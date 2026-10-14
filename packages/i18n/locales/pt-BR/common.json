@@ -4657,6 +4657,8 @@
   "agenda_new_booking_invalid_time": "Confira a data e a hora.",
   "agenda_new_booking_no_services": "Crie um tipo de agendamento antes de agendar.",
   "agenda_new_booking_end_before_start": "O fim precisa vir depois do início.",
+  "agenda_new_booking_notify": "Enviar a confirmação por e-mail ao cliente",
+  "agenda_new_booking_phone_invalid": "Confira o WhatsApp: DDD e número, ou o formato internacional completo.",
   "agenda_new_booking_failed": "Não deu para agendar. Confira os campos e tente de novo.",
   "agenda_new_booking_unavailable_in_nexus_mode": "Agendar pela grade fica desligado enquanto as reservas passam pelo Nexus.",
   "nexus_google_connection_lives_in_tab": "A conexão do Google fica na aba Google Agenda, aqui em cima. Conecte lá uma vez e ela vale para a Agenda e o Meet.",

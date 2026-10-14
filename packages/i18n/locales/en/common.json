@@ -4825,6 +4825,8 @@
   "agenda_new_booking_invalid_time": "Check the date and time.",
   "agenda_new_booking_no_services": "Create a booking type before scheduling.",
   "agenda_new_booking_end_before_start": "The end must come after the start.",
+  "agenda_new_booking_notify": "Email the client the confirmation",
+  "agenda_new_booking_phone_invalid": "Check the WhatsApp number: area code plus number, or the full international format.",
   "agenda_new_booking_failed": "Could not schedule. Check the fields and try again.",
   "agenda_new_booking_unavailable_in_nexus_mode": "Scheduling from the grid is off while bookings run through Nexus.",
   "nexus_google_connection_lives_in_tab": "The Google connection lives in the Google Calendar tab, up here. Connect there once and it works for the Agenda and for Meet.",
