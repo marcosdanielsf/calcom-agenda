@@ -28,6 +28,11 @@ export type PlatformParams = {
   skipAvailabilityCheck?: boolean;
   skipEventLimitsCheck?: boolean;
   skipCalendarSyncTaskCreation?: boolean;
+  /**
+   * Reserva criada pelo dono do tipo de dentro da agenda (clique na grade). Pula antecedência, janela de
+   * datas e data no passado, dispensa verificação de e-mail e nasce confirmada quando não há pagamento.
+   */
+  isOwnerBooking?: boolean;
 };
 
 export type CreateBookingMeta = {

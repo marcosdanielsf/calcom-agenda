@@ -1,24 +1,20 @@
 import prismaMock from "@calcom/testing/lib/__mocks__/prisma";
-
 import {
   createBookingScenario,
+  getBooker,
   getDate,
   getGoogleCalendarCredential,
-  TestData,
   getOrganizer,
-  getBooker,
   getScenarioData,
-  mockCalendarToHaveNoBusySlots,
   mockCalendar,
+  mockCalendarToHaveNoBusySlots,
+  TestData,
 } from "@calcom/testing/lib/bookingScenario/bookingScenario";
+import { BookingStatus } from "@calcom/prisma/enums";
 import { expectBookingToBeInDatabase } from "@calcom/testing/lib/bookingScenario/expects";
 import { getMockRequestDataForBooking } from "@calcom/testing/lib/bookingScenario/getMockRequestDataForBooking";
 import { setupAndTeardown } from "@calcom/testing/lib/bookingScenario/setupAndTeardown";
-
 import { describe, expect, test } from "vitest";
-
-import { BookingStatus } from "@calcom/prisma/enums";
-
 import { getNewBookingHandler } from "./getNewBookingHandler";
 
 setupAndTeardown();
@@ -116,6 +112,90 @@ describe("handleNewBooking - Booking Flags", () => {
         eventTypeId: mockBookingData.eventTypeId,
         status: BookingStatus.ACCEPTED,
       });
+    });
+  });
+
+  describe("isOwnerBooking flag", () => {
+    // Dono criando pela grade: data no passado, confirmação obrigatória e verificação de e-mail
+    // deixam de segurar; a reserva nasce ACCEPTED. Sem o flag, o mesmo pedido é recusado.
+    const setupOwnerScenario = async () => {
+      const booker = getBooker({ email: "cliente@example.com", name: "Cliente" });
+      const organizer = getOrganizer({
+        name: "Organizer",
+        email: "organizer@example.com",
+        id: 101,
+        schedules: [TestData.schedules.IstWorkHours],
+        credentials: [getGoogleCalendarCredential()],
+        selectedCalendars: [TestData.selectedCalendars.google],
+      });
+      const { dateString: minus1DateString } = getDate({ dateIncrement: -1 });
+      await createBookingScenario(
+        getScenarioData({
+          eventTypes: [
+            {
+              id: 1,
+              slotInterval: 45,
+              length: 45,
+              requiresConfirmation: true,
+              requiresBookerEmailVerification: true,
+              users: [{ id: 101 }],
+            },
+          ],
+          organizer,
+          apps: [TestData.apps["google-calendar"], TestData.apps["daily-video"]],
+        })
+      );
+      mockCalendarToHaveNoBusySlots("googlecalendar", { create: { uid: "MOCK_ID" } });
+      const bookingData = getMockRequestDataForBooking({
+        data: {
+          eventTypeId: 1,
+          responses: {
+            email: booker.email,
+            name: booker.name,
+            location: { optionValue: "", value: "integrations:daily" },
+          },
+          start: `${minus1DateString}T05:00:00.000Z`,
+          end: `${minus1DateString}T05:45:00.000Z`,
+        },
+      });
+      return { booker, bookingData };
+    };
+
+    test("dono cria no passado, sem código de e-mail, e a reserva nasce confirmada", async () => {
+      const handleNewBooking = getNewBookingHandler();
+      const { booker, bookingData } = await setupOwnerScenario();
+
+      const createdBooking = await handleNewBooking({
+        bookingData,
+        userId: 101,
+        skipAvailabilityCheck: true,
+        skipEventLimitsCheck: true,
+        isOwnerBooking: true,
+      });
+
+      expect(createdBooking.status).toBe(BookingStatus.ACCEPTED);
+      await expectBookingToBeInDatabase({
+        description: "",
+        location: "integrations:daily",
+        responses: expect.objectContaining({ email: booker.email, name: booker.name }),
+        uid: createdBooking.uid,
+        eventTypeId: bookingData.eventTypeId,
+        status: BookingStatus.ACCEPTED,
+      });
+    });
+
+    test("sem o flag o mesmo pedido é recusado", async () => {
+      const handleNewBooking = getNewBookingHandler();
+      const { bookingData } = await setupOwnerScenario();
+
+      await expect(
+        handleNewBooking({
+          bookingData,
+          userId: 101,
+          skipAvailabilityCheck: true,
+          skipEventLimitsCheck: true,
+        })
+      ).rejects.toThrow();
     });
   });
 

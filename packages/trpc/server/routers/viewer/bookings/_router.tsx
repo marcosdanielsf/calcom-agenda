@@ -5,6 +5,7 @@ import publicProcedure from "../../../procedures/publicProcedure";
 import { router } from "../../../trpc";
 import { ZAddGuestsInputSchema } from "./addGuests.schema";
 import { ZConfirmInputSchema } from "./confirm.schema";
+import { ZCreateByOwnerInputSchema } from "./createByOwner.schema";
 import { ZEditLocationInputSchema } from "./editLocation.schema";
 import { ZFindInputSchema } from "./find.schema";
 import { ZGetInputSchema } from "./get.schema";
@@ -56,6 +57,15 @@ export const bookingsRouter = router({
       ctx,
       input,
       actionSource: "WEBAPP",
+    });
+  }),
+
+  createByOwner: authedProcedure.input(ZCreateByOwnerInputSchema).mutation(async ({ input, ctx }) => {
+    const { createByOwnerHandler } = await import("./createByOwner.handler");
+
+    return createByOwnerHandler({
+      ctx,
+      input,
     });
   }),
 
