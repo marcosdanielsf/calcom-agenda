@@ -22,6 +22,9 @@ vi.mock("@calcom/lib/crypto", () => ({
 vi.mock("@calcom/app-store/appStoreMetaData", () => ({
   appStoreMetadata: { googlecalendar: { slug: "google-calendar", type: "google_calendar" } },
 }));
+vi.mock("app/api/defaultResponderForAppDir", () => ({
+  defaultResponderForAppDir: (handler: unknown) => handler,
+}));
 vi.mock("@lib/nexus-sso/config", () => ({ NEXUS_SSO_PROVIDER: "nexus" }));
 
 import { DELETE, POST } from "./route";
