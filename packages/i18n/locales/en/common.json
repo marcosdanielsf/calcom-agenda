@@ -4812,5 +4812,6 @@
   "agenda_view_list": "List",
   "agenda_view_calendar": "Calendar",
   "agenda_google_busy": "Busy in Google",
+  "nexus_google_connection_lives_in_tab": "The Google connection lives in the Google Calendar tab, up here. Connect there once and it works for the Agenda and for Meet.",
   "ADD_NEW_STRINGS_ABOVE_THIS_LINE_TO_PREVENT_MERGE_CONFLICTS": "↑↑↑↑↑↑↑↑↑↑↑↑↑ Add your new strings above here ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑"
 }
