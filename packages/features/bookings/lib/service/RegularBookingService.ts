@@ -504,6 +504,7 @@ async function handler(
     skipAvailabilityCheck = false,
     skipEventLimitsCheck = false,
     skipCalendarSyncTaskCreation = false,
+    isOwnerBooking = false,
     traceContext: passedTraceContext,
   } = input;
   let bookingEmailsAndSmsTaskerAction: BookingActionType = BookingActionMap.requested;
@@ -609,7 +610,8 @@ async function handler(
     });
   }
 
-  if (eventType.requiresBookerEmailVerification && !rawBookingData.rescheduleUid) {
+  // O dono criando pela grade já conhece o cliente: não há código de verificação para pedir.
+  if (eventType.requiresBookerEmailVerification && !rawBookingData.rescheduleUid && !isOwnerBooking) {
     const verificationCode = reqBody.verificationCode;
     if (!verificationCode) {
       throw new HttpError({
@@ -665,7 +667,7 @@ async function handler(
     metadata: eventTypeMetaDataSchemaWithTypedApps.parse(eventType.metadata),
   });
 
-  const { userReschedulingIsOwner, isConfirmedByDefault } = await getRequiresConfirmationFlags({
+  const confirmationFlags = await getRequiresConfirmationFlags({
     eventType,
     bookingStartTime: reqBody.start,
     userId,
@@ -673,6 +675,10 @@ async function handler(
     paymentAppData,
     bookerEmail,
   });
+  const { userReschedulingIsOwner } = confirmationFlags;
+  // Reserva criada pelo dono nasce confirmada, como a remarcação pelo dono; só pagamento ainda segura.
+  const isConfirmedByDefault =
+    confirmationFlags.isConfirmedByDefault || (isOwnerBooking && !(paymentAppData.price > 0));
 
   // For unconfirmed bookings or round robin bookings with the same attendee and timeslot, return the original booking
   if (
@@ -761,13 +767,16 @@ async function handler(
   const userSchedule = user?.schedules.find((schedule) => schedule.id === user?.defaultScheduleId);
   const eventTimeZone = eventType.schedule?.timeZone ?? userSchedule?.timeZone;
 
-  await validateBookingTimeIsNotOutOfBounds<typeof eventType>(
-    reqBody.start,
-    reqBody.timeZone,
-    eventType,
-    eventTimeZone,
-    tracingLogger
-  );
+  // O dono criando pela grade escolhe qualquer horário, inclusive passado e em cima da hora (como no Google).
+  if (!isOwnerBooking) {
+    await validateBookingTimeIsNotOutOfBounds<typeof eventType>(
+      reqBody.start,
+      reqBody.timeZone,
+      eventType,
+      eventTimeZone,
+      tracingLogger
+    );
+  }
 
   validateEventLength({
     reqBodyStart: reqBody.start,
