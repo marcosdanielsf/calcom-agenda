@@ -541,12 +541,15 @@ export const EventAdvancedTab = ({
 
   const closeEventNameTip = () => setShowEventNameTip(false);
 
-  const [isEventTypeColorChecked, setIsEventTypeColorChecked] = useState(!!eventType.eventTypeColor);
+  // Lido do formulário, não do salvo: a aba Aparência pode ter escolhido uma cor antes de salvar.
+  const [isEventTypeColorChecked, setIsEventTypeColorChecked] = useState(
+    !!formMethods.getValues("eventTypeColor")
+  );
 
   const customReplyToEmail = formMethods.watch("customReplyToEmail");
 
   const [eventTypeColorState, setEventTypeColorState] = useState(
-    eventType.eventTypeColor || {
+    formMethods.getValues("eventTypeColor") || {
       lightEventTypeColor: DEFAULT_LIGHT_BRAND_COLOR,
       darkEventTypeColor: DEFAULT_DARK_BRAND_COLOR,
     }
