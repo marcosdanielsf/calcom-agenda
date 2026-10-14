@@ -135,31 +135,53 @@ export const EventAppearanceTab = () => {
         data-testid="nexus-calendar-color">
         <h3 className="text-emphasis text-base font-semibold">{t("nexus_appearance_calendar_color")}</h3>
         <p className="text-subtle mb-4 text-sm">{t("nexus_appearance_calendar_color_description")}</p>
-        <div
-          className="flex flex-wrap items-center gap-2"
-          role="radiogroup"
-          aria-label={t("nexus_appearance_calendar_color")}>
-          {AGENDA_COLOR_PALETTE.map((color) => {
-            const selected = selectedPaletteKey === color.key;
-            return (
-              <button
-                type="button"
-                key={color.key}
-                role="radio"
-                aria-checked={selected}
-                aria-label={t(`agenda_color_${color.key}`)}
-                title={t(`agenda_color_${color.key}`)}
-                data-testid={`nexus-color-${color.key}`}
-                onClick={() => setCalendarColor(eventTypeColorFromHex(color.hex))}
-                className={classNames(
-                  "flex h-8 w-8 items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emphasis focus-visible:ring-offset-2",
-                  selected && "ring-emphasis ring-2 ring-offset-2"
-                )}
-                style={{ backgroundColor: color.hex }}>
-                {selected && <CheckIcon className="h-4 w-4 text-white" aria-hidden="true" />}
-              </button>
-            );
-          })}
+        <div className="flex flex-wrap items-center gap-3">
+          <div
+            className="flex flex-wrap items-center gap-2"
+            role="radiogroup"
+            aria-label={t("nexus_appearance_calendar_color")}
+            onKeyDown={(event) => {
+              const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+              if (!step) return;
+              event.preventDefault();
+              const count = AGENDA_COLOR_PALETTE.length;
+              const current = AGENDA_COLOR_PALETTE.findIndex((color) => color.key === selectedPaletteKey);
+              const next = AGENDA_COLOR_PALETTE[((current < 0 ? 0 : current) + step + count) % count];
+              setCalendarColor(eventTypeColorFromHex(next.hex));
+              event.currentTarget
+                .querySelector<HTMLButtonElement>(`[data-testid="nexus-color-${next.key}"]`)
+                ?.focus();
+            }}>
+            {AGENDA_COLOR_PALETTE.map((color, index) => {
+              const selected = selectedPaletteKey === color.key;
+              // Uma parada de Tab para o grupo inteiro; as setas andam entre as cores.
+              const tabStop = selected || (!selectedPaletteKey && index === 0);
+              return (
+                <button
+                  type="button"
+                  key={color.key}
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={t(`agenda_color_${color.key}`)}
+                  title={t(`agenda_color_${color.key}`)}
+                  tabIndex={tabStop ? 0 : -1}
+                  data-testid={`nexus-color-${color.key}`}
+                  onClick={() => setCalendarColor(eventTypeColorFromHex(color.hex))}
+                  className={classNames(
+                    "flex h-8 w-8 items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emphasis focus-visible:ring-offset-2",
+                    selected && "ring-emphasis ring-2 ring-offset-2"
+                  )}
+                  style={{ backgroundColor: color.hex }}>
+                  {selected && (
+                    <CheckIcon
+                      className={classNames("h-4 w-4", color.ink === "dark" ? "text-black" : "text-white")}
+                      aria-hidden="true"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
           {calendarColor && !selectedPaletteKey && (
             <span
               data-testid="nexus-color-custom"
@@ -171,7 +193,7 @@ export const EventAppearanceTab = () => {
           )}
           <Button
             type="button"
-            color="minimal"
+            color={calendarColor ? "minimal" : "secondary"}
             size="sm"
             data-testid="nexus-color-none"
             aria-pressed={!calendarColor}

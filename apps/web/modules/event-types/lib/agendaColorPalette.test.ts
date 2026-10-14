@@ -6,6 +6,7 @@ describe("paleta de cores da agenda", () => {
     expect(AGENDA_COLOR_PALETTE).toHaveLength(11);
     for (const color of AGENDA_COLOR_PALETTE) expect(color.hex).toMatch(/^#[0-9a-f]{6}$/);
     expect(new Set(AGENDA_COLOR_PALETTE.map((color) => color.hex)).size).toBe(11);
+    expect(AGENDA_COLOR_PALETTE.find((color) => color.key === "banana")?.ink).toBe("dark");
   });
 
   it("uma cor da paleta vai e volta pela chave", () => {
