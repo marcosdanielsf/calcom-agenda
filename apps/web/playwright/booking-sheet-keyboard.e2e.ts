@@ -95,7 +95,7 @@ async function setupBookingsAndOpenSheet({
   const bookingsGetResponse = page.waitForResponse((response) =>
     /\/api\/trpc\/bookings\/get.*/.test(response.url())
   );
-  await page.goto("/bookings/upcoming", { waitUntil: "domcontentloaded" });
+  await page.goto("/bookings/upcoming?view=list", { waitUntil: "domcontentloaded" });
   await bookingsGetResponse;
 
   const firstBookingItem = page.locator(`[data-booking-uid="${fixtures[0].uid}"]`);
