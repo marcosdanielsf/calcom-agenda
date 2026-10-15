@@ -33,6 +33,9 @@ import { EventTypesStepCard } from "@components/apps/installation/EventTypesStep
 import { StepHeader } from "@components/apps/installation/StepHeader";
 
 import { STEPS } from "~/apps/installation/[[...step]]/constants";
+import { NexusIntegrationsNotice } from "@calcom/web/modules/apps/components/NexusIntegrationsNotice";
+import { isNexusManagedConnection } from "@calcom/web/modules/apps/nexusAppCatalog";
+import { useNexusShell } from "@calcom/web/modules/shell/NexusShell";
 
 export type TEventType = EventTypeAppSettingsComponentProps["eventType"] &
   Pick<
@@ -115,6 +118,7 @@ const OnboardingPage = ({
   const { t } = useLocale();
   const pathname = usePathname();
   const router = useRouter();
+  const isNexusShell = useNexusShell();
 
   const [configureStep, setConfigureStep] = useState(false);
 
@@ -230,6 +234,17 @@ const OnboardingPage = ({
   const handleSetUpLater = () => {
     router.push(`/apps/installed/${appMetadata.categories[0]}?hl=${appMetadata.slug}`);
   };
+
+  // Porta unica: no quadro do Nexus o assistente de instalacao nao conecta agenda, nem por URL direta.
+  if (isNexusManagedConnection(isNexusShell, appMetadata.categories)) {
+    return (
+      <div className="text-emphasis min-h-screen px-4" data-testid="onboarding">
+        <div className="mx-auto max-w-[600px] py-6 md:py-24">
+          <NexusIntegrationsNotice />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div key={pathname} className="text-emphasis min-h-screen px-4" data-testid="onboarding">

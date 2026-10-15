@@ -6,6 +6,8 @@
 export const NEXUS_INTEGRATIONS_URL = "https://nexus.socialfy.me/#/conta/integracoes";
 
 // Com o credential sync ligado, credencial de agenda criada pelo motor nao renova: quem conecta e o Nexus.
+// Vale para TODA agenda de proposito: a que o Nexus ainda nao oferece (Exchange, CalDAV) fica sem porta no
+// quadro ate entrar em Integracoes, em vez de nascer no motor e quebrar no primeiro vencimento.
 export function isNexusManagedConnection(nexus: boolean, categories: readonly string[]): boolean {
   return nexus && categories.includes("calendar");
 }
