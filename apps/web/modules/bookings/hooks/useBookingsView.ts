@@ -1,16 +1,19 @@
+import { localStorage } from "@calcom/lib/webstorage";
 import { createParser, useQueryState } from "nuqs";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
-import { localStorage } from "@calcom/lib/webstorage";
-
-const STORAGE_KEY = "bookings-preferred-view";
+// Chave nova quando o padrão virou calendário: a antiga guardava "list" só por ter sido o padrão.
+const STORAGE_KEY = "bookings-preferred-view-v2";
 
 type BookingView = "list" | "calendar";
 
+// A Agenda abre no calendário, como o Google Agenda; a lista fica a um toque.
+export const DEFAULT_BOOKINGS_VIEW: BookingView = "calendar";
+
 const viewParser = createParser({
-  parse: (value: string) => {
-    if (value === "calendar") return "calendar";
-    return "list";
+  parse: (value: string): BookingView => {
+    if (value === "list") return "list";
+    return "calendar";
   },
   serialize: (value: BookingView) => value,
 });
@@ -31,11 +34,11 @@ const createLocalStorageStore = () => {
     if (stored === "list" || stored === "calendar") {
       return stored;
     }
-    return "list";
+    return DEFAULT_BOOKINGS_VIEW;
   };
 
   const getServerSnapshot = (): BookingView => {
-    return "list";
+    return DEFAULT_BOOKINGS_VIEW;
   };
 
   const notify = () => {
@@ -52,8 +55,8 @@ type UseBookingsViewOptions = {
 };
 
 export function useBookingsView({ bookingsV3Enabled }: UseBookingsViewOptions) {
-  // Always use "list" as the default for useQueryState to keep instances in sync
-  const [_view, setView] = useQueryState("view", viewParser.withDefault("list"));
+  // Always use the same default for useQueryState to keep instances in sync
+  const [_view, setView] = useQueryState("view", viewParser.withDefault(DEFAULT_BOOKINGS_VIEW));
 
   // Track if we've completed the initial sync to prevent race conditions
   const isInitializedRef = useRef(false);
@@ -74,7 +77,7 @@ export function useBookingsView({ bookingsV3Enabled }: UseBookingsViewOptions) {
     const urlHasViewParam =
       typeof window !== "undefined" && new URLSearchParams(window.location.search).has("view");
 
-    if (!urlHasViewParam && storedView !== "list" && _view !== storedView) {
+    if (!urlHasViewParam && storedView !== DEFAULT_BOOKINGS_VIEW && _view !== storedView) {
       setView(storedView);
     } else {
       // No sync needed, mark as initialized

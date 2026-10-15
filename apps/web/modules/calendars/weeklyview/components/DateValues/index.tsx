@@ -1,20 +1,21 @@
-import React from "react";
-
 import dayjs from "@calcom/dayjs";
-import { useLocale } from "@calcom/lib/hooks/useLocale";
-import classNames from "@calcom/ui/classNames";
-
 import { useCalendarStore } from "@calcom/features/calendars/weeklyview/state/store";
 import type { BorderColor } from "@calcom/features/calendars/weeklyview/types/common";
+import { useLocale } from "@calcom/lib/hooks/useLocale";
+import classNames from "@calcom/ui/classNames";
+import type React from "react";
+import { TODAY_TINT_CLASS } from "../event/Empty";
 
 type Props = {
   showBorder: boolean;
   borderColor: BorderColor;
   days: dayjs.Dayjs[];
   containerNavRef: React.RefObject<HTMLDivElement>;
+  /** Índice do dia destacado como hoje (-1 sem destaque) */
+  todayIndex?: number;
 };
 
-export function DateValues({ showBorder, borderColor, days, containerNavRef }: Props) {
+export function DateValues({ showBorder, borderColor, days, containerNavRef, todayIndex = -1 }: Props) {
   const { i18n } = useLocale();
   const timezone = useCalendarStore((state) => state.timezone);
   const showTimezone = useCalendarStore((state) => state.showTimezone ?? false);
@@ -57,13 +58,16 @@ export function DateValues({ showBorder, borderColor, days, containerNavRef }: P
         showBorder && (borderColor === "subtle" ? "border-r-subtle border-r" : "border-r-default border-r")
       )}>
       <div className="text-subtle flex leading-6 sm:hidden" data-dayslength={days.length}>
-        {days.map((day) => {
+        {days.map((day, i) => {
           const isToday = dayjs().isSame(day, "day");
           return (
             <button
               key={day.toString()}
               type="button"
-              className="flex flex-1 flex-col items-center pb-3 pt-2 capitalize">
+              className={classNames(
+                "flex flex-1 flex-col items-center pb-3 pt-2 capitalize",
+                i === todayIndex && TODAY_TINT_CLASS
+              )}>
               {formatDate(day)}{" "}
               <span
                 className={classNames(
@@ -87,14 +91,16 @@ export function DateValues({ showBorder, borderColor, days, containerNavRef }: P
             <span className="text-muted text-xs font-medium">{getTimezoneDisplay()}</span>
           )}
         </div>
-        {days.map((day) => {
+        {days.map((day, i) => {
           const isToday = dayjs().isSame(day, "day");
           return (
             <div
               key={day.toString()}
+              data-testid={i === todayIndex ? "calendar-today-header" : undefined}
               className={classNames(
                 "flex flex-1 items-center justify-center py-3 text-xs font-medium capitalize",
-                isToday && "text-default"
+                isToday && "text-default",
+                i === todayIndex && TODAY_TINT_CLASS
               )}>
               <span>
                 {formatDate(day)}{" "}
