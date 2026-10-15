@@ -4845,5 +4845,8 @@
   "agenda_color_grape": "Grape",
   "agenda_color_graphite": "Graphite",
   "nexus_google_connection_lives_in_tab": "The Google connection lives in the Google Calendar tab, up here. Connect there once and it works for the Agenda and for Meet.",
+  "nexus_booking_not_found": "Booking not found",
+  "nexus_page_not_found_title": "This page does not exist",
+  "nexus_page_not_found_description": "The link may be wrong or may have been deactivated. Please contact whoever sent it to you.",
   "ADD_NEW_STRINGS_ABOVE_THIS_LINE_TO_PREVENT_MERGE_CONFLICTS": "↑↑↑↑↑↑↑↑↑↑↑↑↑ Add your new strings above here ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑"
 }

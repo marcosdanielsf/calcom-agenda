@@ -5,7 +5,6 @@ import {
   RECORDING_DEFAULT_ICON,
   TRANSCRIPTION_STOPPED_ICON,
   WEBAPP_URL,
-  WEBSITE_URL,
 } from "@calcom/lib/constants";
 import { formatToLocalizedDate, formatToLocalizedTime } from "@calcom/lib/dayjs";
 import { emailRegex } from "@calcom/lib/emailSchema";
@@ -189,17 +188,7 @@ export default function JoinCall(props: PageProps) {
               left: 32,
             }}
           />
-        ) : (
-          <img
-            className="fixed z-10 hidden h-5 sm:inline-block"
-            src={`${WEBSITE_URL}/cal-logo-word-dark.svg`}
-            alt="Logo"
-            style={{
-              top: 47,
-              left: 20,
-            }}
-          />
-        )}
+        ) : null}
       </div>
       {!hideLoginModal && (
         <LogInOverlay

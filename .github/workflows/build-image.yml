@@ -38,6 +38,7 @@ jobs:
             DATABASE_URL=postgresql://placeholder/placeholder
             MAX_OLD_SPACE_SIZE=6144
             NEXT_PUBLIC_APP_NAME=Socialfy Agenda
+            NEXT_PUBLIC_WEBSITE_URL=https://agenda.socialfy.me
             NEXT_PUBLIC_COMPANY_NAME=Socialfy
             NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS=suporte@socialfy.me
             NEXT_PUBLIC_DISABLE_SIGNUP=true
