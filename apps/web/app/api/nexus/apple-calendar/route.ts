@@ -39,8 +39,9 @@ const disconnectBodySchema = z.object({
 });
 
 // So recusa de login vira "a Apple nao aceitou": rede, DNS e 5xx do iCloud nao podem levar o cliente
-// a revogar uma senha certa. O tsdav lanca "Invalid credentials" no 401 da descoberta da conta.
-const APPLE_REFUSED = /invalid credentials|unauthori[sz]ed|forbidden|\b40[13]\b/i;
+// a revogar uma senha certa. O tsdav lanca "Invalid credentials" no 401 da descoberta da conta; qualquer
+// outro erro (403 incluso, que vira "cannot find homeUrl") e "nao confirmado", sem afirmar a causa.
+const APPLE_REFUSED = /invalid credentials/i;
 // Chave do lock de transacao que serializa a gravacao da conta Apple por usuario.
 const APPLE_LOCK_NAMESPACE = 4127;
 

@@ -120,7 +120,7 @@ describe("POST /api/nexus/apple-calendar", () => {
   });
 
   it("422 quando a Apple recusa, sem gravar e sem a senha no log", async () => {
-    dav.listCalendars.mockRejectedValue(new Error("401 Unauthorized"));
+    dav.listCalendars.mockRejectedValue(new Error("Invalid credentials"));
     const res = await send(POST, "POST", corpo);
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ code: "apple_rejected" });
@@ -160,11 +160,11 @@ describe("POST /api/nexus/apple-calendar", () => {
 });
 
 describe("POST /api/nexus/apple-calendar, revisao", () => {
-  it("o 401 da Apple (Invalid credentials do cliente CalDAV) vira 422", async () => {
-    dav.listCalendars.mockRejectedValue(new Error("Invalid credentials"));
+  it("403 do iCloud (o tsdav segue e falha em cannot find homeUrl) nao vira senha recusada", async () => {
+    dav.listCalendars.mockRejectedValue(new Error("cannot find homeUrl"));
     const res = await send(POST, "POST", corpo);
-    expect(res.status).toBe(422);
-    expect(await res.json()).toEqual({ code: "apple_rejected" });
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ code: "apple_unavailable" });
   });
 
   it("falha de rede ou do iCloud vira 502 apple_unavailable, nunca senha recusada", async () => {
