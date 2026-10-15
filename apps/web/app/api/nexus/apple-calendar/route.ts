@@ -32,7 +32,17 @@ const connectBodySchema = z.object({
   username: z.string().trim().min(3).max(320),
   password: z.string().min(1).max(128),
 });
-const disconnectBodySchema = z.object({ nexusSub: nexusSubSchema });
+const disconnectBodySchema = z.object({
+  nexusSub: nexusSubSchema,
+  // Sem id desconecta todas as contas Apple do usuario; com id, so aquela.
+  credentialId: z.number().int().positive().optional(),
+});
+
+// So recusa de login vira "a Apple nao aceitou": rede, DNS e 5xx do iCloud nao podem levar o cliente
+// a revogar uma senha certa. O tsdav lanca "Invalid credentials" no 401 da descoberta da conta.
+const APPLE_REFUSED = /invalid credentials|unauthori[sz]ed|forbidden|\b40[13]\b/i;
+// Chave do lock de transacao que serializa a gravacao da conta Apple por usuario.
+const APPLE_LOCK_NAMESPACE = 4127;
 
 // Mesma checagem do webhook app-credential (comparacao em tempo constante).
 const secretIsValid = (request: NextRequest): boolean => {
@@ -68,8 +78,8 @@ const usernameOf = (key: unknown): string | null => {
   }
 };
 
-const appleCredentialsOf = (userId: number) =>
-  prisma.credential.findMany({
+const appleCredentialsOf = (db: { credential: typeof prisma.credential }, userId: number) =>
+  db.credential.findMany({
     where: { userId, type: APPLE_TYPE },
     select: { id: true, key: true, invalid: true },
     orderBy: { id: "asc" },
@@ -95,7 +105,7 @@ async function getHandler(request: NextRequest) {
   const userId = await findUserIdByNexusSub(parsed.data);
   if (userId === null) return NextResponse.json({ code: "user_not_found" }, { status: 404 });
 
-  const credentials = await appleCredentialsOf(userId);
+  const credentials = await appleCredentialsOf(prisma, userId);
   return NextResponse.json({
     connected: credentials.length > 0,
     accounts: credentials.map((credential) => ({
@@ -142,27 +152,33 @@ async function postHandler(request: NextRequest) {
     });
     await dav?.listCalendars();
   } catch (reason) {
-    // So o tipo do erro: a mensagem do cliente CalDAV pode trazer a URL com o Apple ID.
-    logger.error("Apple recusou a conta vinda do Nexus", {
-      event: "nexus.apple_calendar.rejected",
+    const refused = reason instanceof Error && APPLE_REFUSED.test(reason.message);
+    // So a classificacao e o tipo do erro: a mensagem do cliente CalDAV pode trazer a URL com o Apple ID.
+    logger.error("Conta Apple vinda do Nexus nao validou", {
+      event: refused ? "nexus.apple_calendar.rejected" : "nexus.apple_calendar.unreachable",
       reason: reason instanceof Error ? reason.name : typeof reason,
     });
-    return NextResponse.json({ code: "apple_rejected" }, { status: 422 });
+    return refused
+      ? NextResponse.json({ code: "apple_rejected" }, { status: 422 })
+      : NextResponse.json({ code: "apple_unavailable" }, { status: 502 });
   }
 
-  // Mesmo Apple ID atualiza no lugar (mantem os calendarios selecionados), como o app oficial.
-  const existing = (await appleCredentialsOf(user.id)).find(
-    (credential) => usernameOf(credential.key) === username
-  );
-  if (existing) {
-    await prisma.credential.update({ where: { id: existing.id }, data });
-    return NextResponse.json({ credentialId: existing.id, created: false });
-  }
-  const created = await prisma.credential.create({
-    data,
-    select: { id: true },
+  // Mesmo Apple ID (sem diferenca de caixa) atualiza no lugar e mantem os calendarios selecionados,
+  // como o app oficial. O lock por usuario impede que dois pedidos juntos criem duas linhas.
+  const sameAppleId = (key: unknown) => usernameOf(key)?.toLowerCase() === username.toLowerCase();
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${APPLE_LOCK_NAMESPACE}::int, ${user.id}::int)`;
+    const existing = (await appleCredentialsOf(tx, user.id)).find((credential) =>
+      sameAppleId(credential.key)
+    );
+    if (existing) {
+      await tx.credential.update({ where: { id: existing.id }, data });
+      return { credentialId: existing.id, created: false };
+    }
+    const created = await tx.credential.create({ data, select: { id: true } });
+    return { credentialId: created.id, created: true };
   });
-  return NextResponse.json({ credentialId: created.id, created: true });
+  return NextResponse.json(result);
 }
 
 async function deleteHandler(request: NextRequest) {
@@ -175,8 +191,9 @@ async function deleteHandler(request: NextRequest) {
   if (userId === null) return NextResponse.json({ code: "user_not_found" }, { status: 404 });
 
   // SelectedCalendar e DestinationCalendar apontam para a credencial com onDelete: Cascade.
+  const { credentialId } = parsed.data;
   const result = await prisma.credential.deleteMany({
-    where: { userId, appId: APPLE_APP_ID },
+    where: { userId, appId: APPLE_APP_ID, ...(credentialId ? { id: credentialId } : {}) },
   });
   return NextResponse.json({ deleted: result.count });
 }

@@ -13,6 +13,8 @@ const db = vi.hoisted(() => ({
     create: vi.fn(),
     deleteMany: vi.fn(),
   },
+  $executeRaw: vi.fn(),
+  $transaction: vi.fn(),
 }));
 const dav = vi.hoisted(() => ({ listCalendars: vi.fn(), build: vi.fn() }));
 const log = vi.hoisted(() => ({ error: vi.fn(), info: vi.fn() }));
@@ -83,6 +85,7 @@ beforeEach(() => {
   db.credential.update.mockResolvedValue({ id: 5 });
   db.credential.deleteMany.mockResolvedValue({ count: 1 });
   dav.listCalendars.mockResolvedValue([{ name: "Casa" }]);
+  db.$transaction.mockImplementation(async (fn: (tx: typeof db) => unknown) => fn(db));
 });
 
 describe("POST /api/nexus/apple-calendar", () => {
@@ -156,6 +159,32 @@ describe("POST /api/nexus/apple-calendar", () => {
   });
 });
 
+describe("POST /api/nexus/apple-calendar, revisao", () => {
+  it("o 401 da Apple (Invalid credentials do cliente CalDAV) vira 422", async () => {
+    dav.listCalendars.mockRejectedValue(new Error("Invalid credentials"));
+    const res = await send(POST, "POST", corpo);
+    expect(res.status).toBe(422);
+    expect(await res.json()).toEqual({ code: "apple_rejected" });
+  });
+
+  it("falha de rede ou do iCloud vira 502 apple_unavailable, nunca senha recusada", async () => {
+    dav.listCalendars.mockRejectedValue(new Error("getaddrinfo ENOTFOUND caldav.icloud.com"));
+    const res = await send(POST, "POST", corpo);
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ code: "apple_unavailable" });
+    expect(db.credential.create).not.toHaveBeenCalled();
+  });
+
+  it("Apple ID gravado com outra caixa atualiza no lugar, sob lock por usuario", async () => {
+    db.credential.findMany.mockResolvedValue([{ id: 5, key: chave("Cliente@iCloud.com") }]);
+    const res = await send(POST, "POST", corpo);
+    expect(await res.json()).toEqual({ credentialId: 5, created: false });
+    expect(db.credential.create).not.toHaveBeenCalled();
+    expect(db.$transaction).toHaveBeenCalledTimes(1);
+    expect(db.$executeRaw).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("GET /api/nexus/apple-calendar", () => {
   it("lista as contas Apple conectadas com o Apple ID e sem a senha", async () => {
     db.credential.findMany.mockResolvedValue([{ id: 5, invalid: false, key: chave("cliente@icloud.com") }]);
@@ -193,6 +222,14 @@ describe("DELETE /api/nexus/apple-calendar", () => {
     expect(await res.json()).toEqual({ deleted: 1 });
     expect(db.credential.deleteMany).toHaveBeenCalledWith({
       where: { userId: 7, appId: "apple-calendar" },
+    });
+  });
+
+  it("com credentialId apaga so aquela conta", async () => {
+    const res = await send(DELETE, "DELETE", { nexusSub: "nexus-user-1", credentialId: 5 });
+    expect(res.status).toBe(200);
+    expect(db.credential.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 7, appId: "apple-calendar", id: 5 },
     });
   });
 
