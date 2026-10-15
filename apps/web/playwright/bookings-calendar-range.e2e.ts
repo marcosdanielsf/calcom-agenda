@@ -86,10 +86,62 @@ async function openCalendar(page: Page, query = "", date?: string) {
 }
 
 test.describe("Visao de calendario das reservas", () => {
+  test("abre no calendario, com hoje destacado e a grade ate o fim da tela", async ({
+    page,
+    users,
+    bookings,
+    prisma,
+  }) => {
+    const { existingFlag } = await setup({ users, bookings, prisma });
+    try {
+      await page.goto("/bookings/upcoming", { waitUntil: "domcontentloaded" });
+      const grid = page.getByTestId("booking-calendar-grid");
+      await expect(grid).toBeVisible();
+      await expect(page.getByTestId("calendar-today-header")).toBeVisible();
+      const gap = await grid.evaluate((el) => window.innerHeight - el.getBoundingClientRect().bottom);
+      expect(gap).toBeGreaterThanOrEqual(0);
+      expect(gap).toBeLessThanOrEqual(32);
+    } finally {
+      await restoreBookingsV3(prisma, existingFlag);
+    }
+  });
+
+  test("compromisso que ja passou aparece riscado e o que vai acontecer nao", async ({
+    page,
+    users,
+    bookings,
+    prisma,
+  }) => {
+    const { existingFlag, user, typeA, alpha, slots } = await setup({ users, bookings, prisma });
+    try {
+      const now = Date.now();
+      const pastStart = new Date(now - 3 * HOUR_MS);
+      const past = await bookings.create(user.id, user.username, typeA.id, {
+        title: "Reserva Passada",
+        status: BookingStatus.ACCEPTED,
+        startTime: pastStart,
+        endTime: new Date(now - 2 * HOUR_MS),
+        attendees: { createMany: { data: [{ name: "Caio", email: "caio@example.com", timeZone: "UTC" }] } },
+      });
+
+      await openCalendar(page, "&range=day", londonDate(pastStart));
+      const pastEvent = page.locator(`[data-booking-calendar-event][data-booking-uid="${past.uid}"]`);
+      await expect(pastEvent).toBeVisible();
+      await expect(pastEvent).toHaveCSS("text-decoration-line", "line-through");
+
+      await openCalendar(page, "&range=day", slots.day);
+      const upcomingEvent = page.locator(`[data-booking-calendar-event][data-booking-uid="${alpha.uid}"]`);
+      await expect(upcomingEvent).toBeVisible();
+      await expect(upcomingEvent).not.toHaveCSS("text-decoration-line", "line-through");
+    } finally {
+      await restoreBookingsV3(prisma, existingFlag);
+    }
+  });
+
   test("alternador troca lista e grade sem recarregar", async ({ page, users, bookings, prisma }) => {
     const { existingFlag, alpha } = await setup({ users, bookings, prisma });
     try {
-      await page.goto("/bookings/upcoming", { waitUntil: "domcontentloaded" });
+      await page.goto("/bookings/upcoming?view=list", { waitUntil: "domcontentloaded" });
       await expect(page.locator(`[data-booking-uid="${alpha.uid}"]`)).toBeVisible();
       await page.evaluate(() => {
         (window as unknown as { __semRecarga: boolean }).__semRecarga = true;

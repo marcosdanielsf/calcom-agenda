@@ -1,20 +1,20 @@
-import { useMemo } from "react";
-import { shallow } from "zustand/shallow";
-
 import type { Dayjs } from "@calcom/dayjs";
 import dayjs from "@calcom/dayjs";
 import { useTimePreferences } from "@calcom/features/bookings/lib";
-import classNames from "@calcom/ui/classNames";
-
-import { OutOfOfficeInSlots } from "@calcom/web/modules/bookings/components/OutOfOfficeInSlots";
 import { useCalendarStore } from "@calcom/features/calendars/weeklyview/state/store";
 import type { CalendarAvailableTimeslots } from "@calcom/features/calendars/weeklyview/types/state";
 import type { GridCellToDateProps } from "@calcom/features/calendars/weeklyview/utils";
 import { gridCellToDateTime } from "@calcom/features/calendars/weeklyview/utils";
+import classNames from "@calcom/ui/classNames";
+import { OutOfOfficeInSlots } from "@calcom/web/modules/bookings/components/OutOfOfficeInSlots";
+import { useMemo } from "react";
+import { shallow } from "zustand/shallow";
 
 type EmptyCellProps = GridCellToDateProps & {
   isDisabled?: boolean;
   topOffsetMinutes?: number;
+  /** Coluna de hoje: fundo verde bem claro */
+  highlighted?: boolean;
 };
 
 export function EmptyCell(props: EmptyCellProps) {
@@ -29,7 +29,13 @@ export function EmptyCell(props: EmptyCellProps) {
 
   const minutesFromStart = (cellToDate.hour() - props.startHour) * 60 + cellToDate.minute();
 
-  return <Cell topOffsetMinutes={minutesFromStart} timeSlot={dayjs(cellToDate).tz(props.timezone)} />;
+  return (
+    <Cell
+      topOffsetMinutes={minutesFromStart}
+      timeSlot={dayjs(cellToDate).tz(props.timezone)}
+      highlighted={props.highlighted}
+    />
+  );
 }
 
 type AvailableCellProps = {
@@ -135,9 +141,12 @@ type CellProps = {
   isDisabled?: boolean;
   topOffsetMinutes?: number;
   timeSlot: Dayjs;
+  highlighted?: boolean;
 };
 
-function Cell({ isDisabled, topOffsetMinutes, timeSlot }: CellProps) {
+export const TODAY_TINT_CLASS = "bg-green-500/[0.07] dark:bg-green-400/[0.08]";
+
+function Cell({ isDisabled, topOffsetMinutes, timeSlot, highlighted }: CellProps) {
   const { timeFormat } = useTimePreferences();
 
   const { onEmptyCellClick, hoverEventDuration } = useCalendarStore(
@@ -153,7 +162,7 @@ function Cell({ isDisabled, topOffsetMinutes, timeSlot }: CellProps) {
       className={classNames(
         "group flex w-[calc(100%-1px)] items-center justify-center",
         isDisabled && "pointer-events-none",
-        !isDisabled && "bg-default dark:bg-cal-muted",
+        !isDisabled && (highlighted ? TODAY_TINT_CLASS : "bg-default dark:bg-cal-muted"),
         topOffsetMinutes && "absolute"
       )}
       data-disabled={isDisabled}

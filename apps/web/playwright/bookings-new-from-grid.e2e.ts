@@ -109,7 +109,7 @@ test.describe("Novo agendamento pela grade", () => {
       const user = await users.create();
       await user.apiLogin();
 
-      await page.goto("/bookings/upcoming", { waitUntil: "domcontentloaded" });
+      await page.goto("/bookings/upcoming?view=list", { waitUntil: "domcontentloaded" });
       await page.getByTestId("new-booking-button").click();
       await expect(page.getByTestId("new-booking-sheet")).toBeVisible();
       await page.getByTestId("new-booking-cancel").click();

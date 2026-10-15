@@ -1,3 +1,4 @@
+import dayjs from "@calcom/dayjs";
 import {
   CalendarStoreContext,
   createCalendarStore,
@@ -42,8 +43,12 @@ function CalendarInner(props: CalendarProps) {
   const borderColor = useCalendarStore((state) => state.borderColor ?? "default");
   const scrollToCurrentTime = useCalendarStore((state) => state.scrollToCurrentTime ?? true);
   const updateCurrentTimeOnFocus = useCalendarStore((state) => state.updateCurrentTimeOnFocus ?? false);
+  const highlightToday = useCalendarStore((state) => state.highlightToday ?? false);
 
   const days = useMemo(() => getDaysBetweenDates(startDate, endDate), [startDate, endDate]);
+  // Com um dia só na tela a coluna inteira seria "hoje": o destaque só vale na semana.
+  const todayIndex =
+    highlightToday && days.length > 1 ? days.findIndex((day) => dayjs().isSame(day, "day")) : -1;
 
   const hours = useMemo(
     () => getHoursToDisplay(startHour || 0, endHour || 23, timezone),
@@ -80,6 +85,7 @@ function CalendarInner(props: CalendarProps) {
               days={days}
               showBorder={showBorder}
               borderColor={borderColor}
+              todayIndex={todayIndex}
             />
             <div className="relative flex flex-auto">
               <CurrentTime
@@ -159,6 +165,7 @@ function CalendarInner(props: CalendarProps) {
                               return (
                                 <EmptyCell
                                   key={key}
+                                  highlighted={i === todayIndex}
                                   day={days[i]}
                                   gridCellIdx={j}
                                   totalGridCells={numberOfGridStopsPerDay}

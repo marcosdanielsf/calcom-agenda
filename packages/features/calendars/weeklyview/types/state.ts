@@ -139,6 +139,11 @@ export type CalendarState = {
    */
   showBackgroundPattern?: boolean;
   /**
+   * Tint today's column (cells and header) in light green when more than one day is shown
+   * @default false
+   */
+  highlightToday?: boolean;
+  /**
    * Show borders on the leftmost and rightmost sides of the calendar container
    * @default true
    */
