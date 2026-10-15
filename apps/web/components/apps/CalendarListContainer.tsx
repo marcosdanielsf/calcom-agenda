@@ -12,6 +12,10 @@ import { List } from "@calcom/ui/components/list";
 import { showToast } from "@calcom/ui/components/toast";
 import { revalidateSettingsCalendars } from "@calcom/web/app/cache/path/settings/my-account";
 import AppListCardWebWrapper from "@calcom/web/modules/apps/components/AppListCardWebWrapper";
+import {
+  NexusIntegrationsButton,
+  NexusIntegrationsNotice,
+} from "@calcom/web/modules/apps/components/NexusIntegrationsNotice";
 import { SkeletonLoader } from "@calcom/web/modules/apps/components/SkeletonLoader";
 import { useNexusShell } from "@calcom/web/modules/shell/NexusShell";
 import { SelectedCalendarsSettingsWebWrapper } from "@calcom/web/modules/calendars/components/SelectedCalendarsSettingsWebWrapper";
@@ -73,6 +77,9 @@ function CalendarList(props: Props): JSX.Element {
 
 const AddCalendarButton = (): JSX.Element => {
   const { t } = useLocale();
+  const isNexusShell = useNexusShell();
+  // Porta unica: no quadro do Nexus o botao leva para Integracoes do Nexus, nao para a loja do motor.
+  if (isNexusShell) return <NexusIntegrationsButton />;
   return (
     <Button color="secondary" StartIcon="plus" href="/apps/categories/calendar">
       {t("add_calendar")}
@@ -140,6 +147,7 @@ export function CalendarListContainer({
             <SelectedCalendarsSettingsWebWrapper
               onChanged={onChanged}
               fromOnboarding={fromOnboarding}
+              disableConnectionModification={isNexusShell}
               destinationCalendarId={data.destinationCalendar?.externalId}
               isPending={mutation.isPending}
               connectedCalendars={data}
@@ -158,7 +166,7 @@ export function CalendarListContainer({
             title={<SubHeadingTitleWithConnections title={t("connect_additional_calendar")} />}
           />
         )}
-        <CalendarList onChanged={onChanged} />
+        {isNexusShell ? <NexusIntegrationsNotice className="mt-4" /> : <CalendarList onChanged={onChanged} />}
       </>
     );
   } else {
@@ -171,7 +179,7 @@ export function CalendarListContainer({
         description={t(`no_category_apps_description_calendar`)}
         buttonRaw={
           isNexusShell ? (
-            <p className="text-subtle text-sm">{t("nexus_google_connection_lives_in_tab")}</p>
+            <NexusIntegrationsNotice />
           ) : (
             <Button
               EndIcon="external-link"

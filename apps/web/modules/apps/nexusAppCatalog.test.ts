@@ -2,10 +2,35 @@
 import { describe, expect, it } from "vitest";
 import {
   appsForNexusCategory,
+  isNexusManagedConnection,
+  NEXUS_INTEGRATIONS_URL,
   nexusAppDescriptionKey,
   nexusAppNameKey,
   nexusAppPageSections,
 } from "./nexusAppCatalog";
+
+// Porta unica (2026-10-15): no quadro do Nexus toda conexao de agenda nasce em Integracoes do Nexus.
+describe("isNexusManagedConnection", () => {
+  it("no modo Nexus, qualquer app de agenda conecta pelo Nexus, nao so o Google", () => {
+    expect(isNexusManagedConnection(true, ["calendar"])).toBe(true);
+    expect(isNexusManagedConnection(true, ["other", "calendar"])).toBe(true);
+  });
+
+  it("fora do modo Nexus o motor segue conectando sozinho", () => {
+    expect(isNexusManagedConnection(false, ["calendar"])).toBe(false);
+  });
+
+  it("app que nao e de agenda nao muda", () => {
+    expect(isNexusManagedConnection(true, ["conferencing"])).toBe(false);
+    expect(isNexusManagedConnection(true, [])).toBe(false);
+  });
+});
+
+describe("NEXUS_INTEGRATIONS_URL", () => {
+  it("aponta para a tela de Integracoes da conta no Nexus", () => {
+    expect(NEXUS_INTEGRATIONS_URL).toBe("https://nexus.socialfy.me/#/conta/integracoes");
+  });
+});
 
 const apps = [
   { slug: "google-calendar", description: "Google Calendar is a time management service" },

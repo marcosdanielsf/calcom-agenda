@@ -1,6 +1,14 @@
 // Criado: 2026-10-12 BRT. O que a loja de apps mostra dentro do quadro do Nexus.
 // A Agenda embutida oferece so o que a casa sustenta; fora do modo Nexus a loja fica inteira.
-// Outlook e Apple ficam fora por ora: a conexao unica com o Nexus cobre so o Google.
+// Atualizado: 2026-10-15 BRT. Porta unica: no quadro do Nexus toda conexao de agenda nasce em
+// Integracoes do Nexus (plano docs/plans/2026-10-15-0920-nexus-porta-unica-integracoes.md no Nexus).
+
+export const NEXUS_INTEGRATIONS_URL = "https://nexus.socialfy.me/#/conta/integracoes";
+
+// Com o credential sync ligado, credencial de agenda criada pelo motor nao renova: quem conecta e o Nexus.
+export function isNexusManagedConnection(nexus: boolean, categories: readonly string[]): boolean {
+  return nexus && categories.includes("calendar");
+}
 
 const NEXUS_APPS_BY_CATEGORY: Readonly<Record<string, readonly string[]>> = {
   calendar: ["google-calendar"],

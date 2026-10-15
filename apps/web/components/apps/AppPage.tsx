@@ -9,7 +9,8 @@ import { isRedirectApp } from "@calcom/app-store/_utils/redirectApps";
 import useAddAppMutation from "@calcom/app-store/_utils/useAddAppMutation";
 import { doesAppSupportTeamInstall, isConferencing } from "@calcom/app-store/utils";
 import DisconnectIntegration from "@calcom/web/modules/apps/components/DisconnectIntegration";
-import { nexusAppPageSections } from "@calcom/web/modules/apps/nexusAppCatalog";
+import { NexusIntegrationsNotice } from "@calcom/web/modules/apps/components/NexusIntegrationsNotice";
+import { isNexusManagedConnection, nexusAppPageSections } from "@calcom/web/modules/apps/nexusAppCatalog";
 import { useNexusShell } from "@calcom/web/modules/shell/NexusShell";
 import { AppOnboardingSteps } from "@calcom/lib/apps/appOnboardingSteps";
 import { getAppOnboardingUrl } from "@calcom/lib/apps/getAppOnboardingUrl";
@@ -209,7 +210,10 @@ export const AppPage = ({
 
   const allowedMultipleInstalls = categories.indexOf("calendar") > -1 && variant !== "other";
   useEffect(() => {
-    if (searchParams?.get("defaultInstall") === "true") {
+    if (
+      searchParams?.get("defaultInstall") === "true" &&
+      !isNexusManagedConnection(isNexusShell, categories)
+    ) {
       mutation.mutate({ type, variant, slug, defaultInstall: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally run only once on mount
@@ -233,9 +237,18 @@ export const AppPage = ({
       return <SkeletonButton className="h-10 w-24" />;
     }
 
-    // Quadro do Nexus: a conexao do Google e unica e vive na aba Google Agenda.
-    if (isNexusShell && slug === "google-calendar" && existingCredentials.length === 0) {
-      return <p className="text-subtle mt-2 text-sm">{t("nexus_google_connection_lives_in_tab")}</p>;
+    // Porta unica: no quadro do Nexus toda conexao de agenda nasce e se desfaz em Integracoes do Nexus.
+    if (isNexusManagedConnection(isNexusShell, categories)) {
+      return (
+        <div className="mt-2 flex flex-col items-start">
+          {existingCredentials.length > 0 && (
+            <Button StartIcon="check" color="secondary" disabled>
+              {t("active_install", { count: existingCredentials.length })}
+            </Button>
+          )}
+          <NexusIntegrationsNotice className={existingCredentials.length > 0 ? "mt-3" : undefined} />
+        </div>
+      );
     }
 
     const MultiInstallButtonEl = (
