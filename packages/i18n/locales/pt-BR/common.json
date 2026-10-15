@@ -4677,5 +4677,8 @@
   "agenda_color_grape": "Uva",
   "agenda_color_graphite": "Grafite",
   "nexus_google_connection_lives_in_tab": "A conexão do Google fica na aba Google Agenda, aqui em cima. Conecte lá uma vez e ela vale para a Agenda e o Meet.",
+  "nexus_booking_not_found": "Reserva não encontrada",
+  "nexus_page_not_found_title": "Esta página não existe",
+  "nexus_page_not_found_description": "O link pode estar errado ou ter sido desativado. Fale com quem te enviou.",
   "ADD_NEW_STRINGS_ABOVE_THIS_LINE_TO_PREVENT_MERGE_CONFLICTS": "↑↑↑↑↑↑↑↑↑↑↑↑↑ Adicione suas novas strings aqui em cima ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑"
 }
