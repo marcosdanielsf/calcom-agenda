@@ -50,6 +50,7 @@ Validacao reproduzivel, na raiz deste fork com Node 20 e dependencias instaladas
 ```sh
 node .yarn/releases/yarn-4.12.0.cjs vitest run apps/web/modules/shell/Shell.nexus.test.tsx
 node scripts/nexus-shell-style-smoke.mjs
+node scripts/nexus-shell-mobile-bar-smoke.mjs
 node .yarn/releases/yarn-4.12.0.cjs type-check:ci --force
 node .yarn/releases/yarn-4.12.0.cjs biome check apps/web/app/layout.tsx apps/web/modules/shell/NexusShell.tsx apps/web/modules/shell/nexusThemeOrigin.ts apps/web/modules/shell/Shell.nexus.test.tsx apps/web/styles/nexus-shell.css scripts/nexus-shell-style-smoke.mjs
 ```
