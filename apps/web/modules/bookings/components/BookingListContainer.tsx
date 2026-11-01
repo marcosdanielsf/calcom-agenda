@@ -165,7 +165,7 @@ function BookingListInner({
       <div className="flex flex-wrap items-center gap-2">
         {/* Desktop: full width on first row, Mobile: full width on first row with horizontal scroll */}
         <div className="w-full md:w-auto">
-          <div className="overflow-x-auto md:overflow-visible">
+          <div data-testid="booking-status-tabs" className="overflow-x-auto md:overflow-visible">
             <ToggleGroup
               value={currentTab}
               onValueChange={(value) => {

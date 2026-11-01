@@ -146,3 +146,34 @@
   inset: auto;
   bottom: auto;
 }
+
+/* Celular (iframe estreito do Nexus, abaixo de 600 px): as barras da Agenda nao podem passar da largura.
+   Abas de status rolam na horizontal sem barra visivel; a barra de acoes e a de calendario (Lista/Calendario,
+   Dia/Semana/Mes, Hoje, Novo e setas de data) quebram em linhas proprias em vez de ficarem cortadas. */
+@media (max-width: 599px) {
+  :root:has([data-nexus-shell="true"]) [data-testid="booking-status-tabs"] {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  :root:has([data-nexus-shell="true"]) [data-testid="booking-status-tabs"]::-webkit-scrollbar {
+    display: none;
+  }
+  :root:has([data-nexus-shell="true"]) [data-testid="booking-status-tabs"] > * {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+  :root:has([data-nexus-shell="true"])
+    :is([data-testid="booking-list-toolbar"], [data-testid="booking-calendar-toolbar"]) {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    max-width: 100%;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+  :root:has([data-nexus-shell="true"]) [data-testid="booking-calendar-toolbar"] > div {
+    flex-wrap: wrap;
+    max-width: 100%;
+    min-width: 0;
+  }
+}
