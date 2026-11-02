@@ -5,6 +5,7 @@
 import { randomBytes } from "node:crypto";
 import slugify from "@calcom/lib/slugify";
 import prisma from "@calcom/prisma";
+import { Prisma } from "@calcom/prisma/client";
 import { jwtVerify, type KeyLike } from "jose";
 import { z } from "zod";
 import { NEXUS_EVENT_TYPES_AUDIENCE, NEXUS_SSO_ISSUER, NEXUS_SSO_MAX_TOKEN_TTL_SECONDS } from "./config";
@@ -49,6 +50,8 @@ export const nexusEventTypeInputSchema = z
     description: z.string().max(2000).nullable(),
     hidden: z.boolean(),
     position: z.number().int().min(0).max(100000),
+    // Vagas por horario (reserva em grupo). Ausente = nao mexe; nulo = volta a um cliente por horario.
+    seatsPerTimeSlot: z.number().int().min(2).max(100).nullable().optional(),
   })
   .strict();
 
@@ -87,6 +90,19 @@ export async function upsertNexusEventType(
     description: input.description,
     hidden: input.hidden,
     position: POSITION_TOPO - input.position,
+    ...(input.seatsPerTimeSlot === undefined
+      ? {}
+      : input.seatsPerTimeSlot === null
+        ? { seatsPerTimeSlot: null }
+        : {
+            seatsPerTimeSlot: input.seatsPerTimeSlot,
+            seatsShowAttendees: false,
+            seatsShowAvailabilityCount: true,
+            // Assento nao combina com recorrencia nem com confirmacao: o cal.com recusa toda reserva com 400.
+            // A tela da Agenda desliga isso sozinha; aqui o upsert fala direto com o banco e precisa fazer o mesmo.
+            recurringEvent: Prisma.DbNull,
+            requiresConfirmation: false,
+          }),
   };
   if (existing) {
     const updated = await prisma.eventType.update({ where: { id: existing.id }, data, select });
