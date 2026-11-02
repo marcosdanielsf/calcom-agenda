@@ -31,12 +31,16 @@ export const getServerSideProps = async (context: GetServerSidePropsContext) => 
 
   // O metadata da equipe nao sai para a pagina publica.
   const props: Props = {
-    // Sem metadata da equipe e sem metadata dos atendentes na pagina publica.
+    // Pagina publica de equipe: sem metadata da equipe e sem NENHUM atendente no JSON (users, subsetOfUsers,
+    // hosts e subsetOfHosts carregam nome, usuario, foto e metadata). O rodizio escolhe o atendente no servidor.
     eventData: eventData.team
       ? {
           ...eventData,
           team: { ...eventData.team, metadata: null },
-          users: (eventData.users ?? []).map((u) => ({ ...u, metadata: null })),
+          users: [],
+          subsetOfUsers: [],
+          hosts: undefined,
+          subsetOfHosts: [],
         }
       : eventData,
     user: teamSlug,
