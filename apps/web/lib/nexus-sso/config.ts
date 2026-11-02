@@ -8,6 +8,8 @@ export const NEXUS_SSO_AUDIENCE = "https://agenda.socialfy.me";
 export const NEXUS_EVENT_TYPES_AUDIENCE = `${NEXUS_SSO_AUDIENCE}/api/nexus/event-types`;
 // Calendario de equipe (rodizio e coletivo): destino proprio, como o de cima.
 export const NEXUS_TEAM_EVENT_TYPES_AUDIENCE = `${NEXUS_SSO_AUDIENCE}/api/nexus/team-event-types`;
+// Horarios e reservas para o agente de IA do Nexus (buscar, reservar, remarcar, cancelar): destino proprio.
+export const NEXUS_AGENDA_IA_AUDIENCE = `${NEXUS_SSO_AUDIENCE}/api/nexus/agenda-ia`;
 export const NEXUS_SSO_PROVIDER = "nexus";
 export const NEXUS_SSO_JTI_IDENTIFIER = "nexus-sso";
 export const NEXUS_SSO_MAX_TOKEN_TTL_SECONDS = 60;
