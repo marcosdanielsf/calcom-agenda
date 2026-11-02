@@ -60,7 +60,8 @@ export function createAgendaIaDeps(): AgendaIaDeps {
       return { success: !!result.success };
     },
     async findBookings(input) {
-      const phoneVariants = input.phone ? [input.phone, input.phone.replace(/^\+/, "")] : [];
+      const phoneDigits = input.phone?.replace(/^\+/, "");
+      const phoneVariants = phoneDigits ? [phoneDigits, `+${phoneDigits}`] : [];
       const rows = await prisma.booking.findMany({
         where: {
           userId: input.ownerId,
