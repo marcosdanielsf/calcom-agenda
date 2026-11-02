@@ -41,6 +41,7 @@ export const getServerSideProps = async (context: GetServerSidePropsContext) => 
           subsetOfUsers: [],
           hosts: undefined,
           subsetOfHosts: [],
+          owner: null,
         }
       : eventData,
     user: teamSlug,
