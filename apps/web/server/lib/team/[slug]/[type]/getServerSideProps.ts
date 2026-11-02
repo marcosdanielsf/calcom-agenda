@@ -31,7 +31,14 @@ export const getServerSideProps = async (context: GetServerSidePropsContext) => 
 
   // O metadata da equipe nao sai para a pagina publica.
   const props: Props = {
-    eventData: eventData.team ? { ...eventData, team: { ...eventData.team, metadata: null } } : eventData,
+    // Sem metadata da equipe e sem metadata dos atendentes na pagina publica.
+    eventData: eventData.team
+      ? {
+          ...eventData,
+          team: { ...eventData.team, metadata: null },
+          users: (eventData.users ?? []).map((u) => ({ ...u, metadata: null })),
+        }
+      : eventData,
     user: teamSlug,
     slug,
     isBrandingHidden: true,

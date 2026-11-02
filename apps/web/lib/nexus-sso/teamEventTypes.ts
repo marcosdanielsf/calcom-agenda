@@ -29,7 +29,17 @@ const calendar = z
     kind: z.enum(["round_robin", "collective"]),
     distribution: z.enum(["availability", "equal"]),
     hidden: z.boolean(),
-    hosts: z.array(host).min(1).max(50),
+    hosts: z
+      .array(host)
+      .min(1)
+      .max(50)
+      // A mesma pessoa duas vezes estoura a chave unica (userId, eventTypeId) no create e vira um 500 enganoso.
+      .refine(
+        (list) =>
+          new Set(list.map((h) => h.sub)).size === list.length &&
+          new Set(list.map((h) => h.email.toLowerCase())).size === list.length,
+        { message: "hosts repetidos" }
+      ),
   })
   .strict();
 
@@ -100,7 +110,8 @@ async function findTeam(s: Scope) {
 async function ensureTeam(s: Scope, name: string, ownerUserId: number) {
   const found = await findTeam(s);
   if (found) {
-    if (found.name !== name) await prisma.team.update({ where: { id: found.id }, data: { name } });
+    // Equipe do Nexus e sempre privada: a pagina publica nao lista atendentes nem seus tipos individuais.
+    await prisma.team.update({ where: { id: found.id }, data: { ...(found.name !== name ? { name } : {}), isPrivate: true } });
     await prisma.membership.upsert({
       where: { userId_teamId: { userId: ownerUserId, teamId: found.id } },
       create: { userId: ownerUserId, teamId: found.id, role: MembershipRole.ADMIN, accepted: true },
@@ -115,6 +126,7 @@ async function ensureTeam(s: Scope, name: string, ownerUserId: number) {
         slug: teamSlugFor(s),
         hideBranding: true,
         hideTeamProfileLink: true,
+        isPrivate: true,
         members: { create: { userId: ownerUserId, role: MembershipRole.OWNER, accepted: true } },
       },
       select: { id: true, slug: true, name: true },
