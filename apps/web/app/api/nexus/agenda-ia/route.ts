@@ -82,7 +82,7 @@ async function handler(req: NextRequest) {
       email: claims.email,
       name: claims.name,
     });
-    await checkRateLimitAndThrowError({ rateLimitingType: "core", identifier: `nexusAgendaIa:${owner.id}` });
+    await checkRateLimitAndThrowError({ rateLimitingType: "common", identifier: `nexusAgendaIa:${owner.id}` });
     const result = await runNexusAgendaIaOp(
       owner.id,
       parsed.data,
@@ -94,6 +94,8 @@ async function handler(req: NextRequest) {
       return reply({ error: "agenda_email_conflict" }, 409);
     if (e instanceof NexusAgendaIaError)
       return reply({ error: e.code }, e.status);
+    // Limite de taxa estourou antes de qualquer escrita: 429 proprio, para o Nexus saber que nada foi gravado.
+    if ((e as { statusCode?: unknown })?.statusCode === 429) return reply({ error: "rate_limited" }, 429);
     throw e;
   }
 }
