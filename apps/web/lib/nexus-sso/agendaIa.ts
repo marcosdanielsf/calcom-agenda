@@ -15,7 +15,7 @@ export const nexusAgendaIaInputSchema = z.discriminatedUnion("op", [
       eventTypeId: z.number().int().positive(),
       start: isoDate,
       timeZone,
-      attendee: z.object({ name: z.string().trim().min(1).max(200), email: z.string().email().max(254), phone: phone.optional() }).strict(),
+      attendee: z.object({ name: z.string().trim().min(1).max(200), email: z.string().email().max(254).optional(), phone: phone.optional() }).strict().refine((a) => !!a.email || !!a.phone, "email ou telefone"),
       notes: z.string().max(2000).optional(),
     })
     .strict(),
@@ -37,13 +37,14 @@ export interface AgendaIaDeps {
   /** Dono do tipo de agendamento, ou null quando ele nao existe. */
   eventTypeOwner(eventTypeId: number): Promise<number | null>;
   slots(input: { eventTypeId: number; startTime: string; endTime: string; timeZone: string }): Promise<Record<string, { time: string }[]>>;
-  createBooking(input: { ownerId: number; eventTypeId: number; start: string; timeZone: string; name: string; email: string; phone?: string; notes?: string; rescheduleUid?: string }): Promise<{ uid: string | null }>;
+  createBooking(input: { ownerId: number; eventTypeId: number; start: string; timeZone: string; name: string; email: string; noEmail?: boolean; phone?: string; notes?: string; rescheduleUid?: string }): Promise<{ uid: string | null }>;
   cancelBooking(input: { ownerId: number; uid: string; reason?: string }): Promise<{ success: boolean }>;
   /** Reservas futuras do dono em que a pessoa participa, por e-mail ou telefone. */
   findBookings(input: { ownerId: number; email?: string; phone?: string; uid?: string; now: Date }): Promise<AgendaIaBooking[]>;
   now?: () => Date;
 }
 
+export const PLACEHOLDER_DOMAIN = "@sem-email.invalid";
 const MAX_RANGE_MS = 31 * 86_400_000;
 
 export async function runNexusAgendaIaOp(ownerId: number, input: NexusAgendaIaInput, deps: AgendaIaDeps) {
@@ -91,11 +92,15 @@ async function create(
   deps: AgendaIaDeps,
   ownerId: number,
   eventTypeId: number,
-  data: { start: string; timeZone: string; attendee: { name: string; email: string; phone?: string }; notes?: string; rescheduleUid?: string }
+  data: { start: string; timeZone: string; attendee: { name: string; email?: string; phone?: string }; notes?: string; rescheduleUid?: string }
 ) {
   try {
+    // Lead de WhatsApp costuma nao ter e-mail: o cal.com exige um, entao entra um enderecoinvalido de proposito e o aviso por e-mail fica desligado.
+    const realEmail = data.attendee.email && !data.attendee.email.endsWith(PLACEHOLDER_DOMAIN) ? data.attendee.email : null;
+    const digits = (data.attendee.phone ?? "").replace(/\D/g, "");
     const booking = await deps.createBooking({
-      ownerId, eventTypeId, start: data.start, timeZone: data.timeZone, name: data.attendee.name, email: data.attendee.email,
+      ownerId, eventTypeId, start: data.start, timeZone: data.timeZone, name: data.attendee.name,
+      email: realEmail ?? `${digits || "sem-contato"}${PLACEHOLDER_DOMAIN}`, noEmail: !realEmail,
       phone: data.attendee.phone, notes: data.notes, rescheduleUid: data.rescheduleUid,
     });
     if (!booking.uid) throw new NexusAgendaIaError("failed", 502);

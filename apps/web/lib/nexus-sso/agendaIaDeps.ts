@@ -28,6 +28,7 @@ export function createAgendaIaDeps(): AgendaIaDeps {
           language: "pt-BR",
           metadata: { nexusOrigin: "agenda_ia" },
           creationSource: CreationSource.WEBAPP,
+          ...(input.noEmail ? { noEmail: true } : {}),
           ...(input.rescheduleUid ? { rescheduleUid: input.rescheduleUid } : {}),
           responses: {
             name: input.name,

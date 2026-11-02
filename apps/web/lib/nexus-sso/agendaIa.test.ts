@@ -162,4 +162,12 @@ describe("agenda da IA", () => {
       }).success
     ).toBe(false);
   });
+
+  it("participante so com telefone: entra endereco invalido e o e-mail do motor fica desligado", async () => {
+    const d = deps();
+    const input = nexusAgendaIaInputSchema.parse({ op: "book", eventTypeId: 11, start: FUTURE, attendee: { name: "Ana", phone: "+5511999990000" } });
+    await runNexusAgendaIaOp(OWNER, input, d);
+    expect(d.createBooking).toHaveBeenCalledWith(expect.objectContaining({ email: "5511999990000@sem-email.invalid", noEmail: true }));
+    expect(nexusAgendaIaInputSchema.safeParse({ op: "book", eventTypeId: 11, start: FUTURE, attendee: { name: "Ana" } }).success).toBe(false);
+  });
 });
