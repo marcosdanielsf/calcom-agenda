@@ -218,6 +218,8 @@ export const getEventTypeById = async ({
 
   const isOrgTeamEvent = !!eventType?.teamId && !!eventType.team?.parentId;
   const eventTypeObject = Object.assign({}, eventType, {
+    // Calendario de equipe e do Nexus: o segredo do webhook nao sai para quem so atende.
+    webhooks: eventType.teamId ? eventType.webhooks.map((hook) => ({ ...hook, secret: null })) : eventType.webhooks,
     users: eventTypeUsers,
     periodStartDate: eventType.periodStartDate?.toString() ?? null,
     periodEndDate: eventType.periodEndDate?.toString() ?? null,

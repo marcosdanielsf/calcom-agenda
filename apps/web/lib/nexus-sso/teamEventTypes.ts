@@ -2,7 +2,7 @@
 // um atendente livre) e coletivo (todos os atendentes juntos). A escolha do atendente ja existe
 // no motor; esta versao MIT so nao tinha como criar a equipe, entao a equipe e criada por aqui.
 // Uma equipe por subconta. O slug e um hash, nada do Nexus fica legivel na pagina publica.
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import process from "node:process";
 import slugify from "@calcom/lib/slugify";
 import prisma from "@calcom/prisma";
@@ -81,7 +81,9 @@ export function webhookFor(s: Scope): { subscriberUrl: string; secret: string } 
   const target = new URL(url);
   target.searchParams.set("tenant", s.tenantId);
   target.searchParams.set("workspace", s.workspaceKey);
-  return { subscriberUrl: target.toString(), secret };
+  // Segredo proprio da subconta: quem le a linha do webhook nao assina evento de outra conta.
+  const derived = createHmac("sha256", secret).update(`agenda-webhook:${s.tenantId}:${s.workspaceKey}`).digest("hex");
+  return { subscriberUrl: target.toString(), secret: derived };
 }
 
 function isUniqueViolation(e: unknown): boolean {
@@ -196,6 +198,13 @@ async function resolveHosts(teamId: number, input: CalendarInput) {
   return rows;
 }
 
+/** Quem nao atende mais nenhum calendario da equipe perde o acesso a ela. */
+async function pruneMembers(teamId: number) {
+  await prisma.membership.deleteMany({
+    where: { teamId, role: MembershipRole.MEMBER, Host: { none: {} } },
+  });
+}
+
 async function updateCalendar(eventTypeId: number, hosts: Awaited<ReturnType<typeof resolveHosts>>, data: object) {
   // Quem continua atendendo fica com a linha: o rodizio usa a data de entrada para dividir igual.
   const keep = hosts.map((h) => h.userId);
@@ -236,13 +245,16 @@ async function upsertCalendar(s: Scope, teamName: string, ownerUserId: number, i
   const hosts = await resolveHosts(team.id, input);
   if (input.eventTypeId) {
     await updateCalendar(input.eventTypeId, hosts, data);
+    await pruneMembers(team.id);
     return { id: input.eventTypeId };
   }
   // A repeticao de um pedido cuja resposta se perdeu cai no calendario que ele ja criou.
-  const repeated = await prisma.eventType.findFirst({
-    where: { teamId: team.id, metadata: { path: ["nexusRequestKey"], equals: input.requestKey } },
-    select: { id: true },
-  });
+  const findRepeated = () =>
+    prisma.eventType.findFirst({
+      where: { teamId: team.id, metadata: { path: ["nexusRequestKey"], equals: input.requestKey } },
+      select: { id: true },
+    });
+  const repeated = await findRepeated();
   if (repeated) {
     await updateCalendar(repeated.id, hosts, data);
     return repeated;
@@ -267,6 +279,9 @@ async function upsertCalendar(s: Scope, teamName: string, ownerUserId: number, i
       });
     } catch (e) {
       if (!isUniqueViolation(e)) throw e;
+      // Dois pedidos iguais ao mesmo tempo: o outro ja criou.
+      const raced = await findRepeated();
+      if (raced) return raced;
     }
   }
   throw new Error("nexus-team-event-types: slug indisponivel");
@@ -276,6 +291,7 @@ async function removeCalendar(s: Scope, eventTypeId: number): Promise<boolean> {
   const team = await findTeam(s);
   if (!team) return false;
   const { count } = await prisma.eventType.deleteMany({ where: { id: eventTypeId, teamId: team.id } });
+  if (count > 0) await pruneMembers(team.id);
   return count > 0;
 }
 
