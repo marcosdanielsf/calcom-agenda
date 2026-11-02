@@ -9,18 +9,7 @@ import { TRPCError } from "@trpc/server";
 import type { TrpcSessionUser } from "../../../types";
 import type { TGetActiveOnOptionsSchema } from "./getActiveOnOptions.schema";
 
-class PermissionCheckService {
-  constructor(_prisma?: unknown) {}
-  async checkPermission(..._args: unknown[]) {
-    return true;
-  }
-  async hasPermission(..._args: unknown[]) {
-    return true;
-  }
-  async getTeamIdsWithPermission(..._args: unknown[]): Promise<number[]> {
-    return [];
-  }
-}
+import { PermissionCheckService } from "@calcom/features/membership/permissionCheckService";
 const listOtherTeamHandler = async (
   ..._args: unknown[]
 ): Promise<{ id: number; name: string; slug: string }[]> => [];

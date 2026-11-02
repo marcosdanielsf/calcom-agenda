@@ -1,12 +1,7 @@
 import prisma from "@calcom/prisma";
 import { MembershipRole } from "@calcom/prisma/enums";
 
-class PermissionCheckService {
-  constructor(_prisma?: unknown) {}
-  async checkPermission(..._args: unknown[]) { return true; }
-  async hasPermission(..._args: unknown[]) { return true; }
-  async getTeamIdsWithPermission(..._args: unknown[]): Promise<number[]> { return []; }
-}
+import { PermissionCheckService } from "@calcom/features/membership/permissionCheckService";
 
 export const isAdminForUser = async (adminUserId: number, memberUserId: number) => {
   const permissionCheckService = new PermissionCheckService();

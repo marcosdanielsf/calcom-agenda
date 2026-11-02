@@ -8,12 +8,7 @@ import { TRPCError } from "@trpc/server";
 import type { TTeamsAndUserProfilesQueryInputSchema } from "./teamsAndUserProfilesQuery.schema";
 
 type PermissionString = string;
-class PermissionCheckService {
-  constructor(_prisma?: unknown) {}
-  async checkPermission(..._args: unknown[]) { return true; }
-  async hasPermission(..._args: unknown[]) { return true; }
-  async getTeamIdsWithPermission(..._args: unknown[]): Promise<number[]> { return []; }
-}
+import { PermissionCheckService } from "@calcom/features/membership/permissionCheckService";
 
 type TeamsAndUserProfileOptions = {
   ctx: {

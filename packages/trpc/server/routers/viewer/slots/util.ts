@@ -67,6 +67,7 @@ import logger from "@calcom/lib/logger";
 import { safeStringify } from "@calcom/lib/safeStringify";
 import { withReporting } from "@calcom/lib/sentryWrapper";
 import { PeriodType } from "@calcom/prisma/enums";
+import prisma from "@calcom/prisma";
 import type { CalendarFetchMode, EventBusyDate, EventBusyDetails } from "@calcom/types/Calendar";
 import type { CredentialForCalendarService } from "@calcom/types/Credential";
 import { TRPCError } from "@trpc/server";
@@ -355,6 +356,7 @@ export class AvailableSlotsService {
   private async getEventTypeId({
     slug,
     eventTypeSlug,
+    isTeamEvent,
     organizationDetails,
   }: {
     slug?: string;
@@ -363,6 +365,18 @@ export class AvailableSlotsService {
     organizationDetails?: { currentOrgDomain: string | null; isValidOrgDomain: boolean };
   }) {
     if (!eventTypeSlug || !slug) return null;
+
+    // Calendario de equipe: o slug do tipo se repete entre contas, entao a busca fica presa a equipe.
+    if (isTeamEvent) {
+      const team = await prisma.team.findFirst({ where: { slug, parentId: null }, select: { id: true } });
+      if (!team) throw new TRPCError({ code: "NOT_FOUND" });
+      const teamEventType = await this.dependencies.eventTypeRepo.findFirstEventTypeId({
+        slug: eventTypeSlug,
+        teamId: team.id,
+      });
+      if (!teamEventType) throw new TRPCError({ code: "NOT_FOUND" });
+      return teamEventType.id;
+    }
 
     const userId = await this.getUserIdFromUsername(
       slug,

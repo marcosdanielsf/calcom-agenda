@@ -18,13 +18,14 @@ export type NexusEventTypesClaims = { sub: string; email: string; name: string |
 export async function verifyNexusEventTypesToken(
   token: string,
   key: KeyLike,
-  bodySha256: string
+  bodySha256: string,
+  audience: string = NEXUS_EVENT_TYPES_AUDIENCE
 ): Promise<NexusEventTypesClaims> {
   try {
     const { payload } = await jwtVerify(token, key, {
       algorithms: ["EdDSA"],
       issuer: NEXUS_SSO_ISSUER,
-      audience: NEXUS_EVENT_TYPES_AUDIENCE,
+      audience,
     });
     const { sub, email, name, jti, iat, exp, bsh } = payload;
     if (typeof sub !== "string" || !sub) throw new NexusSsoTokenError("sub");

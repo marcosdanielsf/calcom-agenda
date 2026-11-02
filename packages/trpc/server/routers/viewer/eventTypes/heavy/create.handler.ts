@@ -10,12 +10,7 @@ import type { z } from "zod";
 import type { TrpcSessionUser } from "../../../../types";
 import type { TCreateInputSchema } from "./create.schema";
 
-class PermissionCheckService {
-  constructor(_prisma?: unknown) {}
-  async checkPermission(..._args: unknown[]) { return true; }
-  async hasPermission(..._args: unknown[]) { return true; }
-  async getTeamIdsWithPermission(..._args: unknown[]): Promise<number[]> { return []; }
-}
+import { PermissionCheckService } from "@calcom/features/membership/permissionCheckService";
 
 type EventTypeLocation = z.infer<typeof eventTypeLocations>[number];
 
