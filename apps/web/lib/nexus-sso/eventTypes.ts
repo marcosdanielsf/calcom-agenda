@@ -48,6 +48,8 @@ export const nexusEventTypeInputSchema = z
     description: z.string().max(2000).nullable(),
     hidden: z.boolean(),
     position: z.number().int().min(0).max(100000),
+    // Vagas por horario (reserva em grupo). Ausente = nao mexe; nulo = volta a um cliente por horario.
+    seatsPerTimeSlot: z.number().int().min(2).max(100).nullable().optional(),
   })
   .strict();
 
@@ -86,6 +88,11 @@ export async function upsertNexusEventType(
     description: input.description,
     hidden: input.hidden,
     position: POSITION_TOPO - input.position,
+    ...(input.seatsPerTimeSlot === undefined
+      ? {}
+      : input.seatsPerTimeSlot === null
+        ? { seatsPerTimeSlot: null }
+        : { seatsPerTimeSlot: input.seatsPerTimeSlot, seatsShowAttendees: false, seatsShowAvailabilityCount: true }),
   };
   if (existing) {
     const updated = await prisma.eventType.update({ where: { id: existing.id }, data, select });
