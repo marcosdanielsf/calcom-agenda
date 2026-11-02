@@ -32,6 +32,9 @@ function Type({ slug, user, isEmbed, booking, isBrandingHidden, eventData, orgBa
       <main className={getBookerWrapperClasses({ isEmbed: !!isEmbed })}>
         <Booker
           username={user}
+          isTeamEvent={!!eventData.team}
+          // Sem API v2 nesta instalacao: o horario de equipe tambem vem da API interna.
+          useApiV2={false}
           eventSlug={slug}
           bookingData={booking}
           hideBranding={isBrandingHidden}

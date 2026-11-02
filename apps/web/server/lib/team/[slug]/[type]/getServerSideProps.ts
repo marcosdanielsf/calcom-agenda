@@ -24,13 +24,14 @@ export const getServerSideProps = async (context: GetServerSidePropsContext) => 
   const allowRescheduleForCancelledBooking = context.query.allowRescheduleForCancelledBooking === "true";
 
   const eventData = await EventRepository.getPublicEvent(
-    { username: teamSlug, eventSlug: slug, isTeamEvent: true, org: null },
+    { username: teamSlug, eventSlug: slug, isTeamEvent: true, org: null, fromRedirectOfNonOrgLink: false },
     session?.user?.id
   );
   if (!eventData) return { notFound: true } as const;
 
+  // O metadata da equipe nao sai para a pagina publica.
   const props: Props = {
-    eventData,
+    eventData: eventData.team ? { ...eventData, team: { ...eventData.team, metadata: null } } : eventData,
     user: teamSlug,
     slug,
     isBrandingHidden: true,

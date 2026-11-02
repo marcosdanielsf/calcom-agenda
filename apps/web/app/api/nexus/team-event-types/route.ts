@@ -11,7 +11,11 @@ import {
   NexusSsoJtiReusedError,
   resolveNexusUser,
 } from "@lib/nexus-sso/provision";
-import { nexusTeamEventTypeInputSchema, runNexusTeamEventTypeOp } from "@lib/nexus-sso/teamEventTypes";
+import {
+  NexusTeamWebhookUnconfiguredError,
+  nexusTeamEventTypeInputSchema,
+  runNexusTeamEventTypeOp,
+} from "@lib/nexus-sso/teamEventTypes";
 import { importNexusPublicKey } from "@lib/nexus-sso/verifyToken";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -58,11 +62,16 @@ async function handler(req: NextRequest) {
   }
 
   try {
-    const owner = await resolveNexusUser({ sub: claims.sub, email: claims.email, name: claims.name });
-    const calendars = await runNexusTeamEventTypeOp(owner.id, parsed.data);
+    // Ler nao cria conta: so a escrita precisa do dono.
+    const ownerId =
+      parsed.data.op === "list"
+        ? null
+        : (await resolveNexusUser({ sub: claims.sub, email: claims.email, name: claims.name })).id;
+    const calendars = await runNexusTeamEventTypeOp(ownerId, parsed.data);
     if (!calendars) return reply({ error: "not_found" }, 404);
     return reply({ calendars }, 200);
   } catch (e) {
+    if (e instanceof NexusTeamWebhookUnconfiguredError) return reply({ error: "agenda_webhook_unconfigured" }, 503);
     if (e instanceof NexusSsoEmailConflictError) return reply({ error: "agenda_email_conflict" }, 409);
     throw e;
   }

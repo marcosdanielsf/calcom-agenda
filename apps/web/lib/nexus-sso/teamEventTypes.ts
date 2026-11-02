@@ -1,11 +1,12 @@
 // Criado: 2026-11-02 BRT. Calendario de equipe que o Nexus administra: rodizio (o motor escolhe
 // um atendente livre) e coletivo (todos os atendentes juntos). A escolha do atendente ja existe
 // no motor; esta versao MIT so nao tinha como criar a equipe, entao a equipe e criada por aqui.
-// Cada conta do Nexus tem uma equipe, marcada em metadata.nexusTenantId.
+// Uma equipe por subconta. O slug e um hash, nada do Nexus fica legivel na pagina publica.
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import process from "node:process";
 import slugify from "@calcom/lib/slugify";
 import prisma from "@calcom/prisma";
-import { MembershipRole, SchedulingType } from "@calcom/prisma/enums";
+import { MembershipRole, SchedulingType, WebhookTriggerEvents } from "@calcom/prisma/enums";
 import { z } from "zod";
 import { resolveNexusUser } from "./provision";
 
@@ -21,6 +22,7 @@ const host = z
 const calendar = z
   .object({
     eventTypeId: z.number().int().positive().nullable(),
+    requestKey: z.string().uuid(),
     title: z.string().trim().min(1).max(200),
     lengthMinutes: z.number().int().min(1).max(1440),
     description: z.string().max(2000).nullable(),
@@ -31,113 +33,149 @@ const calendar = z
   })
   .strict();
 
+const scope = { tenantId: z.string().uuid(), workspaceKey: z.string().min(1).max(100) };
+
 export const nexusTeamEventTypeInputSchema = z.discriminatedUnion("op", [
-  z.object({ op: z.literal("list"), tenantId: z.string().uuid() }).strict(),
-  z
-    .object({ op: z.literal("upsert"), tenantId: z.string().uuid(), teamName: z.string().min(1).max(200), calendar })
-    .strict(),
-  z.object({ op: z.literal("remove"), tenantId: z.string().uuid(), eventTypeId: z.number().int().positive() }).strict(),
+  z.object({ op: z.literal("list"), ...scope }).strict(),
+  z.object({ op: z.literal("upsert"), ...scope, teamName: z.string().trim().min(1).max(200), calendar }).strict(),
+  z.object({ op: z.literal("remove"), ...scope, eventTypeId: z.number().int().positive() }).strict(),
 ]);
 
 export type NexusTeamEventTypeInput = z.infer<typeof nexusTeamEventTypeInputSchema>;
 type CalendarInput = z.infer<typeof calendar>;
+type Scope = { tenantId: string; workspaceKey: string };
 
 export type NexusTeamCalendar = {
   eventTypeId: number;
   title: string;
   slug: string;
   teamSlug: string;
+  teamName: string;
   lengthMinutes: number;
   description: string | null;
   kind: "round_robin" | "collective";
   distribution: "availability" | "equal";
   hidden: boolean;
-  hosts: { email: string; name: string | null; priority: number }[];
+  hosts: { sub: string | null; email: string; name: string | null; priority: number }[];
 };
 
-/** Slug publico estavel, sem expor o id da conta. */
-export function teamSlugForTenant(tenantId: string): string {
-  return `equipe-${createHash("sha256").update(tenantId).digest("hex").slice(0, 12)}`;
+export class NexusTeamWebhookUnconfiguredError extends Error {}
+
+const WEBHOOK_TRIGGERS = [
+  WebhookTriggerEvents.BOOKING_CREATED,
+  WebhookTriggerEvents.BOOKING_REQUESTED,
+  WebhookTriggerEvents.BOOKING_RESCHEDULED,
+  WebhookTriggerEvents.BOOKING_CANCELLED,
+  WebhookTriggerEvents.BOOKING_PAYMENT_INITIATED,
+];
+
+export function teamSlugFor({ tenantId, workspaceKey }: Scope): string {
+  return `equipe-${createHash("sha256").update(`${tenantId}:${workspaceKey}`).digest("hex").slice(0, 16)}`;
+}
+
+/** Reserva de equipe so avisa webhook ligado ao tipo. O endereco diz ao Nexus de qual conta ela e. */
+export function webhookFor(s: Scope): { subscriberUrl: string; secret: string } {
+  const url = process.env.NEXUS_AGENDA_MOTOR_WEBHOOK_URL?.trim();
+  const secret = process.env.NEXUS_AGENDA_MOTOR_WEBHOOK_SECRET?.trim();
+  if (!url || !secret) throw new NexusTeamWebhookUnconfiguredError();
+  const target = new URL(url);
+  target.searchParams.set("tenant", s.tenantId);
+  target.searchParams.set("workspace", s.workspaceKey);
+  return { subscriberUrl: target.toString(), secret };
 }
 
 function isUniqueViolation(e: unknown): boolean {
   return typeof e === "object" && e !== null && (e as { code?: unknown }).code === "P2002";
 }
 
-async function findTenantTeam(tenantId: string) {
+async function findTeam(s: Scope) {
   return prisma.team.findFirst({
-    where: { slug: teamSlugForTenant(tenantId), metadata: { path: ["nexusTenantId"], equals: tenantId } },
-    select: { id: true, slug: true },
+    where: { slug: teamSlugFor(s), parentId: null },
+    select: { id: true, slug: true, name: true },
   });
 }
 
-async function ensureTenantTeam(tenantId: string, teamName: string, ownerUserId: number) {
-  const found = await findTenantTeam(tenantId);
-  if (found) return found;
+async function ensureTeam(s: Scope, name: string, ownerUserId: number) {
+  const found = await findTeam(s);
+  if (found) {
+    if (found.name !== name) await prisma.team.update({ where: { id: found.id }, data: { name } });
+    await prisma.membership.upsert({
+      where: { userId_teamId: { userId: ownerUserId, teamId: found.id } },
+      create: { userId: ownerUserId, teamId: found.id, role: MembershipRole.ADMIN, accepted: true },
+      update: { accepted: true },
+    });
+    return found;
+  }
   try {
-    const created = await prisma.team.create({
+    return await prisma.team.create({
       data: {
-        name: teamName,
-        slug: teamSlugForTenant(tenantId),
+        name,
+        slug: teamSlugFor(s),
         hideBranding: true,
-        metadata: { nexusTenantId: tenantId },
+        hideTeamProfileLink: true,
         members: { create: { userId: ownerUserId, role: MembershipRole.OWNER, accepted: true } },
       },
-      select: { id: true, slug: true },
+      select: { id: true, slug: true, name: true },
     });
-    // Reserva de equipe so avisa webhook da equipe: sem esta copia o Nexus nunca ficaria sabendo.
-    const hooks = await prisma.webhook.findMany({
-      where: { userId: ownerUserId, active: true, eventTypeId: null },
-      select: { subscriberUrl: true, payloadTemplate: true, eventTriggers: true, secret: true },
-    });
-    for (const hook of hooks) {
-      await prisma.webhook.create({ data: { ...hook, id: randomUUID(), teamId: created.id } });
-    }
-    return created;
   } catch (e) {
     if (!isUniqueViolation(e)) throw e;
-    const raced = await findTenantTeam(tenantId);
+    const raced = await findTeam(s);
     if (raced) return raced;
     throw e;
   }
 }
 
-const eventTypeSelect = {
-  id: true,
-  title: true,
-  slug: true,
-  length: true,
-  description: true,
-  hidden: true,
-  schedulingType: true,
-  isRRWeightsEnabled: true,
-  hosts: { select: { priority: true, user: { select: { email: true, name: true } } } },
-} as const;
-
-async function listCalendars(tenantId: string): Promise<NexusTeamCalendar[]> {
-  const team = await findTenantTeam(tenantId);
+async function listCalendars(s: Scope): Promise<NexusTeamCalendar[]> {
+  const team = await findTeam(s);
   if (!team?.slug) return [];
+  const teamSlug = team.slug;
   const rows = await prisma.eventType.findMany({
     where: { teamId: team.id },
     orderBy: { id: "asc" },
-    select: eventTypeSelect,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      length: true,
+      description: true,
+      hidden: true,
+      schedulingType: true,
+      isRRWeightsEnabled: true,
+      hosts: {
+        select: {
+          priority: true,
+          user: {
+            select: {
+              email: true,
+              name: true,
+              accounts: { where: { provider: "nexus" }, select: { providerAccountId: true } },
+            },
+          },
+        },
+      },
+    },
   });
-  const teamSlug = team.slug;
   return rows.map((row) => ({
     eventTypeId: row.id,
     title: row.title,
     slug: row.slug,
     teamSlug,
+    teamName: team.name,
     lengthMinutes: row.length,
     description: row.description,
     kind: row.schedulingType === SchedulingType.COLLECTIVE ? "collective" : "round_robin",
     distribution: row.isRRWeightsEnabled ? "equal" : "availability",
     hidden: row.hidden,
-    hosts: row.hosts.map((h) => ({ email: h.user.email, name: h.user.name, priority: h.priority ?? 2 })),
+    hosts: row.hosts.map((h) => ({
+      sub: h.user.accounts[0]?.providerAccountId ?? null,
+      email: h.user.email,
+      name: h.user.name,
+      priority: h.priority ?? 2,
+    })),
   }));
 }
 
-async function hostRows(teamId: number, input: CalendarInput) {
+async function resolveHosts(teamId: number, input: CalendarInput) {
   const rows = [];
   for (const person of input.hosts) {
     const user = await resolveNexusUser({ sub: person.sub, email: person.email, name: person.name });
@@ -158,9 +196,35 @@ async function hostRows(teamId: number, input: CalendarInput) {
   return rows;
 }
 
-async function upsertCalendar(tenantId: string, teamName: string, ownerUserId: number, input: CalendarInput) {
-  const team = await ensureTenantTeam(tenantId, teamName, ownerUserId);
-  const hosts = await hostRows(team.id, input);
+async function updateCalendar(eventTypeId: number, hosts: Awaited<ReturnType<typeof resolveHosts>>, data: object) {
+  // Quem continua atendendo fica com a linha: o rodizio usa a data de entrada para dividir igual.
+  const keep = hosts.map((h) => h.userId);
+  await prisma.$transaction([
+    prisma.host.deleteMany({ where: { eventTypeId, userId: { notIn: keep } } }),
+    ...hosts.map(({ userId, ...rest }) =>
+      prisma.host.upsert({
+        where: { userId_eventTypeId: { userId, eventTypeId } },
+        create: { ...rest, userId, eventTypeId },
+        update: { isFixed: rest.isFixed, priority: rest.priority, memberId: rest.memberId },
+      })
+    ),
+    prisma.eventType.update({ where: { id: eventTypeId }, data }),
+  ]);
+}
+
+async function upsertCalendar(s: Scope, teamName: string, ownerUserId: number, input: CalendarInput) {
+  const webhook = webhookFor(s);
+  const existingTeam = input.eventTypeId ? await findTeam(s) : null;
+  if (input.eventTypeId) {
+    const owned =
+      existingTeam &&
+      (await prisma.eventType.findFirst({
+        where: { id: input.eventTypeId, teamId: existingTeam.id },
+        select: { id: true },
+      }));
+    if (!owned) return null;
+  }
+  const team = await ensureTeam(s, teamName, ownerUserId);
   const data = {
     title: input.title,
     length: input.lengthMinutes,
@@ -169,25 +233,36 @@ async function upsertCalendar(tenantId: string, teamName: string, ownerUserId: n
     schedulingType: input.kind === "collective" ? SchedulingType.COLLECTIVE : SchedulingType.ROUND_ROBIN,
     isRRWeightsEnabled: input.kind === "round_robin" && input.distribution === "equal",
   };
+  const hosts = await resolveHosts(team.id, input);
   if (input.eventTypeId) {
-    // O teamId no filtro impede uma conta de editar calendario de outra.
-    const owned = await prisma.eventType.findFirst({
-      where: { id: input.eventTypeId, teamId: team.id },
-      select: { id: true },
-    });
-    if (!owned) return null;
-    return prisma.eventType.update({
-      where: { id: owned.id },
-      data: { ...data, hosts: { deleteMany: {}, create: hosts } },
-      select: { id: true },
-    });
+    await updateCalendar(input.eventTypeId, hosts, data);
+    return { id: input.eventTypeId };
+  }
+  // A repeticao de um pedido cuja resposta se perdeu cai no calendario que ele ja criou.
+  const repeated = await prisma.eventType.findFirst({
+    where: { teamId: team.id, metadata: { path: ["nexusRequestKey"], equals: input.requestKey } },
+    select: { id: true },
+  });
+  if (repeated) {
+    await updateCalendar(repeated.id, hosts, data);
+    return repeated;
   }
   const base = slugify(input.title) || "calendario";
   for (let attempt = 0; attempt < 5; attempt++) {
     const slug = attempt === 0 ? base : `${base}-${randomBytes(2).toString("hex")}`;
     try {
       return await prisma.eventType.create({
-        data: { ...data, slug, locations: [], team: { connect: { id: team.id } }, hosts: { create: hosts } },
+        data: {
+          ...data,
+          slug,
+          locations: [],
+          metadata: { nexusRequestKey: input.requestKey },
+          team: { connect: { id: team.id } },
+          hosts: { create: hosts },
+          webhooks: {
+            create: { ...webhook, id: randomUUID(), active: true, eventTriggers: WEBHOOK_TRIGGERS },
+          },
+        },
         select: { id: true },
       });
     } catch (e) {
@@ -197,24 +272,24 @@ async function upsertCalendar(tenantId: string, teamName: string, ownerUserId: n
   throw new Error("nexus-team-event-types: slug indisponivel");
 }
 
-async function removeCalendar(tenantId: string, eventTypeId: number): Promise<boolean> {
-  const team = await findTenantTeam(tenantId);
+async function removeCalendar(s: Scope, eventTypeId: number): Promise<boolean> {
+  const team = await findTeam(s);
   if (!team) return false;
   const { count } = await prisma.eventType.deleteMany({ where: { id: eventTypeId, teamId: team.id } });
   return count > 0;
 }
 
-/** Devolve a lista atualizada, ou null quando o calendario nao e desta conta. */
+/** Devolve a lista atualizada, ou null quando o calendario nao e desta subconta. */
 export async function runNexusTeamEventTypeOp(
-  ownerUserId: number,
+  ownerUserId: number | null,
   input: NexusTeamEventTypeInput
 ): Promise<NexusTeamCalendar[] | null> {
+  const s = { tenantId: input.tenantId, workspaceKey: input.workspaceKey };
   if (input.op === "upsert") {
-    const saved = await upsertCalendar(input.tenantId, input.teamName, ownerUserId, input.calendar);
-    if (!saved) return null;
+    if (ownerUserId === null) return null;
+    if (!(await upsertCalendar(s, input.teamName, ownerUserId, input.calendar))) return null;
   } else if (input.op === "remove") {
-    if (!(await removeCalendar(input.tenantId, input.eventTypeId))) return null;
+    if (!(await removeCalendar(s, input.eventTypeId))) return null;
   }
-  return listCalendars(input.tenantId);
+  return listCalendars(s);
 }
-
