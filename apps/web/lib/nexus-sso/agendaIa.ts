@@ -73,6 +73,7 @@ export async function runNexusAgendaIaOp(ownerId: number, input: NexusAgendaIaIn
     case "reschedule": {
       const [current] = await deps.findBookings({ ownerId, uid: input.uid, now: new Date(0) });
       if (!current || current.eventTypeId === null) throw new NexusAgendaIaError("not_found", 404);
+      await owns(current.eventTypeId);
       if (Date.parse(input.start) <= now.getTime()) throw new NexusAgendaIaError("slot_unavailable", 409);
       if (!current.attendee) throw new NexusAgendaIaError("not_found", 404);
       const booking = await create(deps, ownerId, current.eventTypeId, { start: input.start, timeZone: input.timeZone, attendee: current.attendee, rescheduleUid: input.uid });

@@ -3,7 +3,9 @@
 // corpo preso ao token (bsh). O dono da agenda vem do token (a subconta), nunca do corpo.
 import { createHash } from "node:crypto";
 import process from "node:process";
+import { checkRateLimitAndThrowError } from "@calcom/lib/checkRateLimitAndThrowError";
 import logger from "@calcom/lib/logger";
+import { usesNexusBooking } from "@calcom/lib/nexus-booking/server";
 import { NEXUS_AGENDA_IA_AUDIENCE } from "@lib/nexus-sso/config";
 import { verifyNexusEventTypesToken } from "@lib/nexus-sso/eventTypes";
 import {
@@ -30,6 +32,8 @@ const reply = (body: Record<string, unknown>, status: number) =>
 async function handler(req: NextRequest) {
   const rawKey = process.env.NEXUS_AGENDA_SSO_PUBLIC_KEY;
   if (!rawKey) return reply({ error: "agenda_unavailable" }, 503);
+  // Com o motor em modo Nexus a reserva mora no Nexus; gravar aqui criaria reserva que o outro lado nao enxerga.
+  if (usesNexusBooking()) return reply({ error: "agenda_unavailable" }, 503);
   const key = await importNexusPublicKey(rawKey);
 
   const auth = req.headers.get("authorization") ?? "";
@@ -78,6 +82,7 @@ async function handler(req: NextRequest) {
       email: claims.email,
       name: claims.name,
     });
+    await checkRateLimitAndThrowError({ rateLimitingType: "core", identifier: `nexusAgendaIa:${owner.id}` });
     const result = await runNexusAgendaIaOp(
       owner.id,
       parsed.data,

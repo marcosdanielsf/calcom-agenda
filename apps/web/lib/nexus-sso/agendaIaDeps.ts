@@ -45,10 +45,18 @@ export function createAgendaIaDeps(): AgendaIaDeps {
     },
     async cancelBooking(input) {
       const { default: handleCancelBooking } = await import("@calcom/features/bookings/lib/handleCancelBooking");
-      const result = await handleCancelBooking({
-        bookingData: { uid: input.uid, cancellationReason: input.reason ?? "Cancelado pelo atendimento", cancelledBy: undefined } as never,
-        userId: input.ownerId,
-      });
+      let result: { success?: boolean };
+      try {
+        result = await handleCancelBooking({
+          bookingData: { uid: input.uid, cancellationReason: input.reason ?? "Cancelado pelo atendimento", cancelledBy: undefined } as never,
+          userId: input.ownerId,
+        });
+      } catch (e) {
+        // Reserva ja cancelada, evento encerrado ou cancelamento desligado: recusa de dominio, nao falha do servidor.
+        const status = (e as { statusCode?: unknown })?.statusCode;
+        if (status === 400 || status === 404) return { success: false };
+        throw e;
+      }
       return { success: !!result.success };
     },
     async findBookings(input) {
