@@ -76,7 +76,7 @@ export function teamSlugFor({ tenantId, workspaceKey }: Scope): string {
 /** Reserva de equipe so avisa webhook ligado ao tipo. O endereco diz ao Nexus de qual conta ela e. */
 export function webhookFor(s: Scope): { subscriberUrl: string; secret: string } {
   const url = process.env.NEXUS_AGENDA_MOTOR_WEBHOOK_URL?.trim();
-  const secret = process.env.NEXUS_AGENDA_MOTOR_WEBHOOK_SECRET?.trim();
+  const secret = process.env.NEXUS_AGENDA_TEAM_WEBHOOK_SECRET?.trim();
   if (!url || !secret) throw new NexusTeamWebhookUnconfiguredError();
   const target = new URL(url);
   target.searchParams.set("tenant", s.tenantId);
@@ -200,8 +200,14 @@ async function resolveHosts(teamId: number, input: CalendarInput) {
 
 /** Quem nao atende mais nenhum calendario da equipe perde o acesso a ela. */
 async function pruneMembers(teamId: number) {
+  // Pelo userId: host criado pela tela do motor nao tem memberId.
+  const hosts = await prisma.host.findMany({
+    where: { eventType: { teamId } },
+    select: { userId: true },
+    distinct: ["userId"],
+  });
   await prisma.membership.deleteMany({
-    where: { teamId, role: MembershipRole.MEMBER, Host: { none: {} } },
+    where: { teamId, role: MembershipRole.MEMBER, userId: { notIn: hosts.map((h) => h.userId) } },
   });
 }
 
