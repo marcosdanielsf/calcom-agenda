@@ -80,13 +80,19 @@ export async function ensureNexusEventTypeWebhook(
   webhook: { subscriberUrl: string; secret: string }
 ): Promise<void> {
   const base = webhook.subscriberUrl.split("?")[0];
-  const existing = await prisma.webhook.findFirst({
+  const existing = await prisma.webhook.findMany({
     where: { eventTypeId, subscriberUrl: { startsWith: base } },
     select: { id: true },
+    orderBy: { id: "asc" },
   });
   const data = { ...webhook, active: true, eventTriggers: WEBHOOK_TRIGGERS };
-  if (existing) {
-    await prisma.webhook.update({ where: { id: existing.id }, data });
+  if (existing.length > 0) {
+    await prisma.webhook.update({ where: { id: existing[0].id }, data });
+    // Webhook nao tem unique por tipo e destino: duas chamadas ao mesmo tempo podem ter criado dois.
+    // Sobrando um por destino, a reserva nao avisa o Nexus duas vezes.
+    if (existing.length > 1) {
+      await prisma.webhook.deleteMany({ where: { id: { in: existing.slice(1).map((w) => w.id) } } });
+    }
     return;
   }
   await prisma.webhook.create({ data: { ...data, id: randomUUID(), eventType: { connect: { id: eventTypeId } } } });

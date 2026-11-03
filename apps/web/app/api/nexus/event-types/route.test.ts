@@ -226,7 +226,8 @@ describe("POST /api/nexus/event-types, webhook escopado da conta da pagina", () 
   beforeEach(() => {
     vi.stubEnv("NEXUS_AGENDA_MOTOR_WEBHOOK_URL", "https://nexus.socialfy.me/api/agenda/motor/webhook");
     vi.stubEnv("NEXUS_AGENDA_TEAM_WEBHOOK_SECRET", "mestre");
-    prismaMock.webhook.findFirst.mockResolvedValue(null as never);
+    prismaMock.webhook.findMany.mockResolvedValue([] as never);
+    prismaMock.webhook.deleteMany.mockResolvedValue({ count: 0 } as never);
     prismaMock.webhook.create.mockResolvedValue({} as never);
     prismaMock.webhook.update.mockResolvedValue({} as never);
   });
@@ -251,11 +252,11 @@ describe("POST /api/nexus/event-types, webhook escopado da conta da pagina", () 
 
   it("editar o tipo atualiza o webhook que ja existe e nao cria outro", async () => {
     prismaMock.eventType.findFirst.mockResolvedValueOnce({ id: 7, slug: "dermaplaning" } as never);
-    prismaMock.webhook.findFirst.mockResolvedValue({ id: "wh-1" } as never);
+    prismaMock.webhook.findMany.mockResolvedValue([{ id: "wh-1" }] as never);
     const res = await okCall({ ...escopo, eventTypeId: 7, title: "Dermaplaning Plus" });
     expect(res.status).toBe(200);
     expect(prismaMock.webhook.create).not.toHaveBeenCalled();
-    const busca = prismaMock.webhook.findFirst.mock.calls[0][0] as { where: Record<string, unknown> };
+    const busca = prismaMock.webhook.findMany.mock.calls[0][0] as { where: Record<string, unknown> };
     expect(busca.where).toEqual({
       eventTypeId: 7,
       subscriberUrl: { startsWith: "https://nexus.socialfy.me/api/agenda/motor/webhook" },
@@ -270,7 +271,7 @@ describe("POST /api/nexus/event-types, webhook escopado da conta da pagina", () 
     vi.stubEnv("NEXUS_AGENDA_TEAM_WEBHOOK_SECRET", "");
     const res = await okCall();
     expect(res.status).toBe(200);
-    expect(prismaMock.webhook.findFirst).not.toHaveBeenCalled();
+    expect(prismaMock.webhook.findMany).not.toHaveBeenCalled();
     expect(prismaMock.webhook.create).not.toHaveBeenCalled();
     expect(prismaMock.webhook.update).not.toHaveBeenCalled();
   });
@@ -289,5 +290,28 @@ describe("POST /api/nexus/event-types, webhook escopado da conta da pagina", () 
     expect((await okCall({ workspaceKey: SUBCONTA })).status).toBe(400);
     expect((await okCall({ tenantId: "nao-e-uuid", workspaceKey: SUBCONTA })).status).toBe(400);
     expect(prismaMock.eventType.create).not.toHaveBeenCalled();
+  });
+
+  it("webhook que falha depois do tipo gravado responde 500, e o retry converge sem tipo nem webhook duplicado", async () => {
+    prismaMock.webhook.create.mockRejectedValueOnce(new Error("db fora") as never);
+    const primeira = await okCall(escopo);
+    expect(primeira.status).toBe(500);
+    expect(prismaMock.eventType.create).toHaveBeenCalledTimes(1);
+    // Retry: o tipo ja existe (casado pelo servico) e o webhook ainda nao.
+    prismaMock.eventType.findFirst.mockResolvedValueOnce({ id: 7, slug: "dermaplaning" } as never);
+    const segunda = await okCall(escopo);
+    expect(segunda.status).toBe(200);
+    expect(prismaMock.eventType.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.webhook.create).toHaveBeenCalledTimes(2);
+    expect(prismaMock.webhook.update).not.toHaveBeenCalled();
+  });
+
+  it("webhooks repetidos do mesmo destino: atualiza o primeiro e apaga os extras", async () => {
+    prismaMock.webhook.findMany.mockResolvedValue([{ id: "a" }, { id: "b" }, { id: "c" }] as never);
+    const res = await okCall(escopo);
+    expect(res.status).toBe(200);
+    expect((prismaMock.webhook.update.mock.calls[0][0] as { where: unknown }).where).toEqual({ id: "a" });
+    expect(prismaMock.webhook.deleteMany).toHaveBeenCalledWith({ where: { id: { in: ["b", "c"] } } });
+    expect(prismaMock.webhook.create).not.toHaveBeenCalled();
   });
 });
