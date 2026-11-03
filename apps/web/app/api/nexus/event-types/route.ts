@@ -6,6 +6,8 @@ import process from "node:process";
 import logger from "@calcom/lib/logger";
 import prisma from "@calcom/prisma";
 import {
+  ensureNexusEventTypeWebhook,
+  eventTypeScopeOf,
   nexusEventTypeInputSchema,
   upsertNexusEventType,
   verifyNexusEventTypesToken,
@@ -16,6 +18,7 @@ import {
   NexusSsoJtiReusedError,
   resolveNexusUser,
 } from "@lib/nexus-sso/provision";
+import { NexusTeamWebhookUnconfiguredError, webhookFor } from "@lib/nexus-sso/teamEventTypes";
 import { importNexusPublicKey } from "@lib/nexus-sso/verifyToken";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -61,6 +64,18 @@ async function handler(req: NextRequest) {
   const parsed = nexusEventTypeInputSchema.safeParse(json);
   if (!parsed.success) return reply({ error: "bad_request" }, 400);
 
+  // Sem envs do webhook o tipo nasceria caindo na conta fixa do Nexus: recusa antes de queimar o token.
+  const scope = eventTypeScopeOf(parsed.data);
+  let webhook: ReturnType<typeof webhookFor> | null = null;
+  if (scope) {
+    try {
+      webhook = webhookFor(scope);
+    } catch (e) {
+      if (e instanceof NexusTeamWebhookUnconfiguredError) return reply({ error: "agenda_webhook_unconfigured" }, 503);
+      throw e;
+    }
+  }
+
   try {
     await consumeJti(claims.jti, claims.exp);
   } catch (e) {
@@ -76,7 +91,10 @@ async function handler(req: NextRequest) {
     throw e;
   }
 
-  const result = await upsertNexusEventType(user.id, parsed.data);
+  // tenantId e workspaceKey nao sao colunas do tipo: ficam so no endereco do webhook.
+  const { tenantId: _t, workspaceKey: _w, ...tipo } = parsed.data;
+  const result = await upsertNexusEventType(user.id, tipo);
+  if (webhook) await ensureNexusEventTypeWebhook(result.eventTypeId, webhook);
   const owner = await prisma.user.findUnique({ where: { id: user.id }, select: { username: true } });
   if (!owner?.username) {
     log.error("dono sem usuario publico", { userId: user.id });

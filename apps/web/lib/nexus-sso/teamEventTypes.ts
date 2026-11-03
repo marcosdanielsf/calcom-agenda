@@ -71,7 +71,7 @@ export type NexusTeamCalendar = {
 
 export class NexusTeamWebhookUnconfiguredError extends Error {}
 
-const WEBHOOK_TRIGGERS = [
+export const WEBHOOK_TRIGGERS = [
   WebhookTriggerEvents.BOOKING_CREATED,
   WebhookTriggerEvents.BOOKING_REQUESTED,
   WebhookTriggerEvents.BOOKING_RESCHEDULED,
