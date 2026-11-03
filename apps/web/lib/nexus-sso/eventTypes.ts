@@ -2,13 +2,14 @@
 // O catalogo (preco, foto, categoria) e do Nexus; aqui ficam so o que a reserva precisa:
 // titulo, duracao, descricao, visibilidade e ordem. Plano no repo do Nexus:
 // docs/plans/2026-10-08-1645-agenda-servicos-v2-catalogo-nexus-horario-motor.md.
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import slugify from "@calcom/lib/slugify";
 import prisma from "@calcom/prisma";
 import { Prisma } from "@calcom/prisma/client";
 import { jwtVerify, type KeyLike } from "jose";
 import { z } from "zod";
 import { NEXUS_EVENT_TYPES_AUDIENCE, NEXUS_SSO_ISSUER, NEXUS_SSO_MAX_TOKEN_TTL_SECONDS } from "./config";
+import { webhookFor, WEBHOOK_TRIGGERS } from "./teamEventTypes";
 import { NexusSsoTokenError } from "./verifyToken";
 
 export type NexusEventTypesClaims = { sub: string; email: string; name: string | null; jti: string; exp: number };
@@ -52,10 +53,44 @@ export const nexusEventTypeInputSchema = z
     position: z.number().int().min(0).max(100000),
     // Vagas por horario (reserva em grupo). Ausente = nao mexe; nulo = volta a um cliente por horario.
     seatsPerTimeSlot: z.number().int().min(2).max(100).nullable().optional(),
+    // Conta (tenant + subconta) da pagina que criou o servico. Quando vem, a reserva do tipo avisa o
+    // Nexus no endereco escopado dessa conta; ausente = comportamento antigo (conta fixa do Nexus).
+    tenantId: z.string().uuid().optional(),
+    workspaceKey: z.string().min(1).max(100).optional(),
   })
-  .strict();
+  .strict()
+  .refine((v) => (v.tenantId === undefined) === (v.workspaceKey === undefined), {
+    message: "tenantId e workspaceKey vem juntos",
+  });
 
 export type NexusEventTypeInput = z.infer<typeof nexusEventTypeInputSchema>;
+
+/** Escopo da conta quando o corpo traz os dois campos; null para corpo antigo. */
+export function eventTypeScopeOf(input: NexusEventTypeInput): { tenantId: string; workspaceKey: string } | null {
+  return input.tenantId && input.workspaceKey ? { tenantId: input.tenantId, workspaceKey: input.workspaceKey } : null;
+}
+
+/**
+ * Deixa UM webhook no tipo, apontando para o endereco escopado da conta. Idempotente: acha o
+ * webhook do mesmo destino-base (mesmo que de outra conta, se a pagina mudou) e atualiza; so cria
+ * quando nao ha nenhum. Webhook de outro destino, posto por outra pessoa, nao e tocado.
+ */
+export async function ensureNexusEventTypeWebhook(
+  eventTypeId: number,
+  webhook: { subscriberUrl: string; secret: string }
+): Promise<void> {
+  const base = webhook.subscriberUrl.split("?")[0];
+  const existing = await prisma.webhook.findFirst({
+    where: { eventTypeId, subscriberUrl: { startsWith: base } },
+    select: { id: true },
+  });
+  const data = { ...webhook, active: true, eventTriggers: WEBHOOK_TRIGGERS };
+  if (existing) {
+    await prisma.webhook.update({ where: { id: existing.id }, data });
+    return;
+  }
+  await prisma.webhook.create({ data: { ...data, id: randomUUID(), eventType: { connect: { id: eventTypeId } } } });
+}
 
 // A Agenda ordena por `position` decrescente; no Nexus a ordem 0 vem primeiro.
 const POSITION_TOPO = 100000;
