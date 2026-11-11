@@ -98,6 +98,36 @@ export async function ensureNexusEventTypeWebhook(
   await prisma.webhook.create({ data: { ...data, id: randomUUID(), eventType: { connect: { id: eventTypeId } } } });
 }
 
+/**
+ * Deixa UM webhook de NIVEL DE USUARIO (userId preenchido, eventTypeId nulo) na conta, com o mesmo
+ * endereco, gatilhos e segredo do webhook por tipo. Cobre servico criado dentro da tela do proprio
+ * motor, que nao passa pela rota do Nexus e nascia sem aviso. Idempotente como o do tipo: acha pelo
+ * destino-base, atualiza e apara duplicata; so cria quando nao ha nenhum.
+ *
+ * Duplicidade com o webhook por tipo: o getWebhooks do cal.com junta os dois sem olhar o destino.
+ * O dedupe por conteudo mora la (packages/features/webhooks/lib/getWebhooks.ts).
+ */
+export async function ensureNexusUserWebhook(
+  userId: number,
+  webhook: { subscriberUrl: string; secret: string }
+): Promise<void> {
+  const base = webhook.subscriberUrl.split("?")[0];
+  const existing = await prisma.webhook.findMany({
+    where: { userId, eventTypeId: null, teamId: null, subscriberUrl: { startsWith: base } },
+    select: { id: true },
+    orderBy: { id: "asc" },
+  });
+  const data = { ...webhook, active: true, eventTriggers: WEBHOOK_TRIGGERS };
+  if (existing.length > 0) {
+    await prisma.webhook.update({ where: { id: existing[0].id }, data });
+    if (existing.length > 1) {
+      await prisma.webhook.deleteMany({ where: { id: { in: existing.slice(1).map((w) => w.id) } } });
+    }
+    return;
+  }
+  await prisma.webhook.create({ data: { ...data, id: randomUUID(), user: { connect: { id: userId } } } });
+}
+
 // A Agenda ordena por `position` decrescente; no Nexus a ordem 0 vem primeiro.
 const POSITION_TOPO = 100000;
 
