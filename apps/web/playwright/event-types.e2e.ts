@@ -148,6 +148,32 @@ test.describe("Event Types tests", () => {
       });
     });
 
+    test("editor de reunião mantém navegação, salvar e reabertura utilizáveis no celular", async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await gotoFirstEventType(page);
+
+      await expect(page.getByTestId("nexus-meeting-editor")).toBeVisible();
+      await expect(page.getByTestId("horizontal-tab-basics")).toBeVisible();
+      await expect(page.getByTestId("event-title")).toBeVisible();
+      await expect(page.getByTestId("update-eventtype")).toBeVisible();
+
+      const title = `Reunião móvel ${randomString(4)}`;
+      await page.getByTestId("event-title").fill(title);
+      await submitAndWaitForResponse(page, "/api/trpc/eventTypesHeavy/update?batch=1", {
+        action: () => page.getByTestId("update-eventtype").click(),
+      });
+      await page.reload();
+      await expect(page.getByTestId("event-title")).toHaveValue(title);
+
+      await page.getByTestId("horizontal-tab-availability").click();
+      await expect(page).toHaveURL(/tabName=availability/);
+
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+      );
+      expect(overflow).toBeLessThanOrEqual(1);
+    });
+
     test("can add multiple organizer address", async ({ page }) => {
       const $eventTypes = page.locator("[data-testid=event-types] > li a");
       const firstEventTypeElement = $eventTypes.first();

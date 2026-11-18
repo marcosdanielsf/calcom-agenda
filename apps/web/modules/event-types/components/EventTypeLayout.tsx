@@ -289,10 +289,12 @@ function EventTypeSingleLayout({
             <LoaderIcon className="h-5 w-5 animate-spin" />
           </div>
         }>
-        <div className="flex flex-col xl:flex-row xl:space-x-6">
+        <div
+          data-testid="nexus-meeting-editor"
+          className="mx-auto flex w-full max-w-6xl flex-col gap-4 xl:flex-row xl:gap-6">
           <div className="hidden xl:block">
             <VerticalTabs
-              className="primary-navigation w-64"
+              className="primary-navigation w-64 rounded-lg border border-subtle bg-default p-2"
               tabs={EventTypeTabs}
               sticky
               stickyOffset="var(--navbar-height, 64px)"
@@ -300,10 +302,10 @@ function EventTypeSingleLayout({
               itemClassname="items-start"
             />
           </div>
-          <div className="p-2 md:mx-0 md:p-0 xl:hidden">
+          <div className="rounded-lg border border-subtle bg-default p-2 xl:hidden">
             <HorizontalTabs tabs={EventTypeTabs} linkShallow />
           </div>
-          <div className="w-full ltr:mr-2 rtl:ml-2">
+          <div className="w-full min-w-0 ltr:mr-2 rtl:ml-2">
             <div
               className={classNames(
                 "mt-4 rounded-md border-subtle bg-default sm:mx-0 xl:mt-0",
