@@ -47,6 +47,9 @@ jobs:
         run: yarn biome check --diagnostic-level=error --max-diagnostics=200 apps/web/modules/event-types/components/EventTypeLayout.tsx apps/web/modules/event-types/views/event-types-listing-view.tsx apps/web/playwright/event-types.e2e.ts
       - run: yarn db-deploy
       - run: yarn db-seed
+      - run: yarn workspace @calcom/prisma prisma generate
+      - run: yarn workspace @calcom/web copy-app-store-static
+      - run: NEXT_PUBLIC_IS_E2E=1 NODE_OPTIONS=--max-old-space-size=6144 yarn workspace @calcom/web exec next build
       - id: playwright
         continue-on-error: true
         run: yarn playwright test apps/web/playwright/event-types.e2e.ts --project=@calcom/web --grep "Nexus switches calendar groups|editor de reunião mantém navegação"
