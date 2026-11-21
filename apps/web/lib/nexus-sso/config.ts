@@ -6,6 +6,9 @@ export const NEXUS_SSO_AUDIENCE = "https://agenda.socialfy.me";
 // Chamada servidor a servidor do Nexus para criar o tipo de agendamento de um servico do
 // catalogo. Destino proprio: o token do login unico nao serve aqui, e este nao serve no login.
 export const NEXUS_EVENT_TYPES_AUDIENCE = `${NEXUS_SSO_AUDIENCE}/api/nexus/event-types`;
+// Sincronizacao da capacidade compartilhada configurada no Nexus. O destino proprio impede
+// reutilizar tokens de login, tipos de evento ou Agenda IA nesta mutacao administrativa.
+export const NEXUS_RESOURCE_CAPACITY_AUDIENCE = `${NEXUS_SSO_AUDIENCE}/api/nexus/resource-capacity/sync`;
 // Calendario de equipe (rodizio e coletivo): destino proprio, como o de cima.
 export const NEXUS_TEAM_EVENT_TYPES_AUDIENCE = `${NEXUS_SSO_AUDIENCE}/api/nexus/team-event-types`;
 // Horarios e reservas para o agente de IA do Nexus (buscar, reservar, remarcar, cancelar): destino proprio.

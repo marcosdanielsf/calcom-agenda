@@ -28,6 +28,7 @@ import { useBookings } from "../hooks/useBookings";
 import { useCalendars } from "../hooks/useCalendars";
 import { useSlots } from "../hooks/useSlots";
 import { useVerifyCode } from "../hooks/useVerifyCode";
+import { bookingMetadataFromSearch } from "../lib/bookingMetadata";
 import { getNexusAppearance, validNexusHex } from "../lib/nexusAppearance";
 import { useVerifyEmail } from "../hooks/useVerifyEmail";
 import { Booker as BookerComponent } from "./Booker";
@@ -98,15 +99,7 @@ const BookerWebWrapperComponent = (props: BookerWebWrapperAtomProps): JSX.Elemen
   const hasSession = !!session;
   const firstNameQueryParam = searchParams?.get("firstName");
   const lastNameQueryParam = searchParams?.get("lastName");
-  const metadata = Object.keys(routerQuery)
-    .filter((key) => key.startsWith("metadata"))
-    .reduce(
-      (metadata, key) => ({
-        ...metadata,
-        [key.substring("metadata[".length, key.length - 1)]: searchParams?.get(key),
-      }),
-      {}
-    );
+  const metadata = bookingMetadataFromSearch(Object.keys(routerQuery), searchParams);
   const prefillFormParams = useMemo(() => {
     return {
       name:

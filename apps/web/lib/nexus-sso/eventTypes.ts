@@ -12,7 +12,15 @@ import { NEXUS_EVENT_TYPES_AUDIENCE, NEXUS_SSO_ISSUER, NEXUS_SSO_MAX_TOKEN_TTL_S
 import { webhookFor, WEBHOOK_TRIGGERS } from "./teamEventTypes";
 import { NexusSsoTokenError } from "./verifyToken";
 
-export type NexusEventTypesClaims = { sub: string; email: string; name: string | null; jti: string; exp: number };
+export type NexusEventTypesClaims = {
+  sub: string;
+  email: string;
+  name: string | null;
+  jti: string;
+  exp: number;
+  tenantId?: string;
+  workspaceKey?: string;
+};
 
 // O token prende o corpo pelo claim `bsh` (sha256 hex do corpo exato): token interceptado
 // nao carrega outro corpo.
@@ -20,7 +28,8 @@ export async function verifyNexusEventTypesToken(
   token: string,
   key: KeyLike,
   bodySha256: string,
-  audience: string = NEXUS_EVENT_TYPES_AUDIENCE
+  audience: string = NEXUS_EVENT_TYPES_AUDIENCE,
+  requireScope = false
 ): Promise<NexusEventTypesClaims> {
   try {
     const { payload } = await jwtVerify(token, key, {
@@ -28,14 +37,30 @@ export async function verifyNexusEventTypesToken(
       issuer: NEXUS_SSO_ISSUER,
       audience,
     });
-    const { sub, email, name, jti, iat, exp, bsh } = payload;
+    const { sub, email, name, jti, iat, exp, bsh, tenantId, workspaceKey } = payload;
     if (typeof sub !== "string" || !sub) throw new NexusSsoTokenError("sub");
     if (typeof email !== "string" || !email.includes("@")) throw new NexusSsoTokenError("email");
     if (typeof jti !== "string" || !jti) throw new NexusSsoTokenError("jti");
     if (typeof iat !== "number" || typeof exp !== "number") throw new NexusSsoTokenError("times");
     if (exp - iat > NEXUS_SSO_MAX_TOKEN_TTL_SECONDS || exp <= iat) throw new NexusSsoTokenError("ttl");
     if (typeof bsh !== "string" || bsh !== bodySha256) throw new NexusSsoTokenError("bsh");
-    return { sub, email, name: typeof name === "string" && name ? name : null, jti, exp };
+    const hasAnyScope = tenantId !== undefined || workspaceKey !== undefined;
+    let scope: { tenantId: string; workspaceKey: string } | null = null;
+    if (hasAnyScope && (typeof tenantId !== "string" || !tenantId || typeof workspaceKey !== "string" || !workspaceKey)) {
+      throw new NexusSsoTokenError("scope");
+    }
+    if (typeof tenantId === "string" && tenantId && typeof workspaceKey === "string" && workspaceKey) {
+      scope = { tenantId, workspaceKey };
+    }
+    if (requireScope && !scope) throw new NexusSsoTokenError("scope");
+    return {
+      sub,
+      email,
+      name: typeof name === "string" && name ? name : null,
+      jti,
+      exp,
+      ...(scope ?? {}),
+    };
   } catch (e) {
     if (e instanceof NexusSsoTokenError) throw e;
     throw new NexusSsoTokenError("invalid");
@@ -96,6 +121,36 @@ export async function ensureNexusEventTypeWebhook(
     return;
   }
   await prisma.webhook.create({ data: { ...data, id: randomUUID(), eventType: { connect: { id: eventTypeId } } } });
+}
+
+/**
+ * Deixa UM webhook de NIVEL DE USUARIO (userId preenchido, eventTypeId nulo) na conta, com o mesmo
+ * endereco, gatilhos e segredo do webhook por tipo. Cobre servico criado dentro da tela do proprio
+ * motor, que nao passa pela rota do Nexus e nascia sem aviso. Idempotente como o do tipo: acha pelo
+ * destino-base, atualiza e apara duplicata; so cria quando nao ha nenhum.
+ *
+ * Duplicidade com o webhook por tipo: o getWebhooks do cal.com junta os dois sem olhar o destino.
+ * O dedupe por conteudo mora la (packages/features/webhooks/lib/getWebhooks.ts).
+ */
+export async function ensureNexusUserWebhook(
+  userId: number,
+  webhook: { subscriberUrl: string; secret: string }
+): Promise<void> {
+  const base = webhook.subscriberUrl.split("?")[0];
+  const existing = await prisma.webhook.findMany({
+    where: { userId, eventTypeId: null, teamId: null, subscriberUrl: { startsWith: base } },
+    select: { id: true },
+    orderBy: { id: "asc" },
+  });
+  const data = { ...webhook, active: true, eventTriggers: WEBHOOK_TRIGGERS };
+  if (existing.length > 0) {
+    await prisma.webhook.update({ where: { id: existing[0].id }, data });
+    if (existing.length > 1) {
+      await prisma.webhook.deleteMany({ where: { id: { in: existing.slice(1).map((w) => w.id) } } });
+    }
+    return;
+  }
+  await prisma.webhook.create({ data: { ...data, id: randomUUID(), user: { connect: { id: userId } } } });
 }
 
 // A Agenda ordena por `position` decrescente; no Nexus a ordem 0 vem primeiro.

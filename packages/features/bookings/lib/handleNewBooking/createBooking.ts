@@ -1,4 +1,6 @@
 import dayjs from "@calcom/dayjs";
+import { ErrorCode } from "@calcom/lib/errorCodes";
+import { ErrorWithCode } from "@calcom/lib/errors";
 import { isPrismaObjOrUndefined } from "@calcom/lib/isPrismaObj";
 import { withReporting } from "@calcom/lib/sentryWrapper";
 import prisma from "@calcom/prisma";
@@ -136,15 +138,31 @@ async function saveBooking(
     });
   }
 
-  return prisma.$transaction(async (tx) => {
-    if (originalBookingUpdateDataForCancellation) {
-      await tx.booking.update(originalBookingUpdateDataForCancellation);
+  try {
+    return await prisma.$transaction(async (tx) => {
+      if (originalBookingUpdateDataForCancellation) {
+        await tx.booking.update(originalBookingUpdateDataForCancellation);
+      }
+
+      const booking = await tx.booking.create(createBookingObj);
+
+      return { ...booking, userUuid: booking.user?.uuid ?? null };
+    });
+  } catch (error) {
+    // Atualizado: 2026-11-20 08:17 BRT. O trigger serializa a capacidade depois da
+    // checagem de availability; traduza apenas lotacao para o conflito nativo do booker.
+    const details =
+      error && typeof error === "object"
+        ? [
+            error instanceof Error ? error.message : "",
+            "meta" in error && typeof error.meta === "object" && error.meta ? JSON.stringify(error.meta) : "",
+          ].join(" ")
+        : "";
+    if (details.includes("NEXUS_RESOURCE_CAPACITY_EXCEEDED")) {
+      throw new ErrorWithCode(ErrorCode.BookingConflict, ErrorCode.BookingConflict);
     }
-
-    const booking = await tx.booking.create(createBookingObj);
-
-    return { ...booking, userUuid: booking.user?.uuid ?? null };
-  });
+    throw error;
+  }
 }
 
 function getEventTypeRel(eventTypeId: EventTypeId) {
