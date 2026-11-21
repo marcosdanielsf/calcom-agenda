@@ -1,11 +1,6 @@
 import { createHash } from "node:crypto";
 import process from "node:process";
 import logger from "@calcom/lib/logger";
-import {
-  NexusResourceCapacitySyncError,
-  nexusResourceCapacitySyncInputSchema,
-  syncNexusResourceCapacity,
-} from "@lib/nexus-sso/resourceCapacity";
 import { NEXUS_RESOURCE_CAPACITY_AUDIENCE } from "@lib/nexus-sso/config";
 import { verifyNexusEventTypesToken } from "@lib/nexus-sso/eventTypes";
 import {
@@ -14,6 +9,11 @@ import {
   NexusSsoJtiReusedError,
   resolveNexusUser,
 } from "@lib/nexus-sso/provision";
+import {
+  NexusResourceCapacitySyncError,
+  nexusResourceCapacitySyncInputSchema,
+  syncNexusResourceCapacity,
+} from "@lib/nexus-sso/resourceCapacity";
 import { importNexusPublicKey } from "@lib/nexus-sso/verifyToken";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -46,13 +46,7 @@ async function handler(req: NextRequest) {
 
   let claims: Awaited<ReturnType<typeof verifyNexusEventTypesToken>>;
   try {
-    claims = await verifyNexusEventTypesToken(
-      token,
-      key,
-      bodySha256,
-      NEXUS_RESOURCE_CAPACITY_AUDIENCE,
-      true
-    );
+    claims = await verifyNexusEventTypesToken(token, key, bodySha256, NEXUS_RESOURCE_CAPACITY_AUDIENCE, true);
   } catch {
     return reply({ error: "invalid_token" }, 401);
   }
@@ -105,7 +99,9 @@ export async function PUT(req: NextRequest, _ctx?: unknown) {
     return await handler(req);
   } catch (error) {
     // Token, corpo, ids externos e nomes podem conter dados de cliente; nenhum deles entra no log.
-    log.error("falha ao sincronizar capacidade", { message: error instanceof Error ? error.message : "desconhecido" });
+    log.error("falha ao sincronizar capacidade", {
+      message: error instanceof Error ? error.message : "desconhecido",
+    });
     return reply({ error: "agenda_resource_capacity_error" }, 500);
   }
 }

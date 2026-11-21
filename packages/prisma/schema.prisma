@@ -976,8 +976,9 @@ model NexusEventTypeResourceBinding {
   @@index([resourcePoolId, active])
 }
 
-// Snapshot dos recursos consumidos pela reserva. Mudanças futuras no catálogo não
-// reescrevem compromissos já assumidos; cancelamento libera as alocações pelo status.
+// Atualizado: 2026-11-21 05:48 BRT. Snapshot dos recursos consumidos pela reserva.
+// O sync preserva alocações já comprometidas e só acrescenta novas necessidades aos
+// compromissos futuros; cancelamento libera o consumo pelo status, sem apagar o histórico.
 model NexusBookingResourceAllocation {
   bookingId      Int
   booking        Booking                  @relation(fields: [bookingId], references: [id], onDelete: Cascade)

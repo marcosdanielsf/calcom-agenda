@@ -22,7 +22,9 @@ vi.mock("@calcom/prisma", async () => {
 });
 vi.mock("@calcom/lib/logger", () => ({ default: { getSubLogger: () => logSpies, ...logSpies } }));
 vi.mock("@calcom/lib/constants", () => ({ WEBAPP_URL: "https://agenda.socialfy.me" }));
-vi.mock("@calcom/lib/server/username", () => ({ isUsernameReservedDueToMigration: vi.fn().mockResolvedValue(false) }));
+vi.mock("@calcom/lib/server/username", () => ({
+  isUsernameReservedDueToMigration: vi.fn().mockResolvedValue(false),
+}));
 vi.mock("@calcom/features/di/containers/UserRepository", () => ({
   getUserRepository: () => ({ create: createUser }),
 }));
@@ -46,22 +48,26 @@ const MOTOR_BINDING = "66666666-6666-4666-8666-666666666666";
 
 const ack = {
   version: 7,
-  resources: [{
-    id: MOTOR_RESOURCE,
-    externalResourceId: RESOURCE,
-    externalLocationId: LOCATION,
-    version: 7,
-    active: true,
-  }],
-  bindings: [{
-    id: MOTOR_BINDING,
-    eventTypeId: 12,
-    externalServiceId: SERVICE,
-    externalResourceId: RESOURCE,
-    externalLocationId: LOCATION,
-    version: 7,
-    active: true,
-  }],
+  resources: [
+    {
+      id: MOTOR_RESOURCE,
+      externalResourceId: RESOURCE,
+      externalLocationId: LOCATION,
+      version: 7,
+      active: true,
+    },
+  ],
+  bindings: [
+    {
+      id: MOTOR_BINDING,
+      eventTypeId: 12,
+      externalServiceId: SERVICE,
+      externalResourceId: RESOURCE,
+      externalLocationId: LOCATION,
+      version: 7,
+      active: true,
+    },
+  ],
 };
 
 let privateKey: CryptoKey;
@@ -70,15 +76,31 @@ let publicPem: string;
 
 const input = (extra: Record<string, unknown> = {}) => ({
   version: 7,
-  resources: [{ externalResourceId: RESOURCE, externalLocationId: LOCATION, name: "Sala 1", capacity: 2, active: true }],
-  bindings: [{ externalServiceId: SERVICE, eventTypeId: 12, externalResourceId: RESOURCE, externalLocationId: LOCATION, active: true }],
+  resources: [
+    { externalResourceId: RESOURCE, externalLocationId: LOCATION, name: "Sala 1", capacity: 2, active: true },
+  ],
+  bindings: [
+    {
+      externalServiceId: SERVICE,
+      eventTypeId: 12,
+      externalResourceId: RESOURCE,
+      externalLocationId: LOCATION,
+      active: true,
+    },
+  ],
   ...extra,
 });
 const sha = (body: string) => createHash("sha256").update(body, "utf8").digest("hex");
 
 async function sign(body: string, claims: Record<string, unknown> = {}, key?: CryptoKey) {
   const now = Math.floor(Date.now() / 1000);
-  const values = { aud: AUDIENCE, jti: crypto.randomUUID(), tenantId: TENANT, workspaceKey: WORKSPACE, ...claims };
+  const values = {
+    aud: AUDIENCE,
+    jti: crypto.randomUUID(),
+    tenantId: TENANT,
+    workspaceKey: WORKSPACE,
+    ...claims,
+  };
   return new SignJWT({
     email: "ana@example.com",
     name: "Ana",
@@ -124,7 +146,9 @@ beforeEach(() => {
   sync.mockReset();
   vi.stubEnv("NEXUS_AGENDA_SSO_PUBLIC_KEY", publicPem);
   prismaMock.verificationToken.create.mockResolvedValue({} as never);
-  prismaMock.account.findUnique.mockResolvedValue({ user: { id: 42, email: "ana@example.com", name: "Ana" } } as never);
+  prismaMock.account.findUnique.mockResolvedValue({
+    user: { id: 42, email: "ana@example.com", name: "Ana" },
+  } as never);
   sync.mockResolvedValue(ack);
 });
 
@@ -145,7 +169,13 @@ describe("PUT /api/nexus/resource-capacity/sync", () => {
     const body = JSON.stringify(input());
     expect((await PUT(request(body, null))).status).toBe(401);
     expect((await PUT(request(body, await sign(body, {}, otherPrivateKey)))).status).toBe(401);
-    expect((await PUT(request(body, await sign(body, { aud: "https://agenda.socialfy.me/api/nexus/event-types" })))).status).toBe(401);
+    expect(
+      (
+        await PUT(
+          request(body, await sign(body, { aud: "https://agenda.socialfy.me/api/nexus/event-types" }))
+        )
+      ).status
+    ).toBe(401);
     expect((await PUT(request(JSON.stringify(input({ bindings: [] })), await sign(body)))).status).toBe(401);
     expect(sync).not.toHaveBeenCalled();
   });
@@ -176,16 +206,26 @@ describe("PUT /api/nexus/resource-capacity/sync", () => {
     expect((await call()).status).toBe(409);
     sync.mockRejectedValueOnce(new NexusResourceCapacitySyncError("version_conflict"));
     expect((await call()).status).toBe(409);
+    sync.mockRejectedValueOnce(new NexusResourceCapacitySyncError("existing_booking_location_required"));
+    const ambiguous = await call();
+    expect(ambiguous.status).toBe(409);
+    expect(await ambiguous.json()).toEqual({ error: "existing_booking_location_required" });
   });
 
   it("aceita o snapshot com o máximo de recursos e vínculos", async () => {
     const resources = Array.from({ length: 500 }, () => ({
-      ...input().resources[0], externalResourceId: crypto.randomUUID(), name: "á".repeat(200),
+      ...input().resources[0],
+      externalResourceId: crypto.randomUUID(),
+      name: "á".repeat(200),
     }));
-    const bindings = resources.flatMap(resource => Array.from({ length: 4 }, (_, index) => ({
-      ...input().bindings[0], externalResourceId: resource.externalResourceId,
-      externalServiceId: crypto.randomUUID(), eventTypeId: index + 1,
-    })));
+    const bindings = resources.flatMap((resource) =>
+      Array.from({ length: 4 }, (_, index) => ({
+        ...input().bindings[0],
+        externalResourceId: resource.externalResourceId,
+        externalServiceId: crypto.randomUUID(),
+        eventTypeId: index + 1,
+      }))
+    );
     expect((await call({ version: 7, resources, bindings })).status).toBe(200);
   });
 
@@ -201,6 +241,8 @@ describe("PUT /api/nexus/resource-capacity/sync", () => {
     const response = await call();
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({ error: "agenda_resource_capacity_error" });
-    expect(logSpies.error).toHaveBeenCalledWith("falha ao sincronizar capacidade", { message: "db indisponivel" });
+    expect(logSpies.error).toHaveBeenCalledWith("falha ao sincronizar capacidade", {
+      message: "db indisponivel",
+    });
   });
 });

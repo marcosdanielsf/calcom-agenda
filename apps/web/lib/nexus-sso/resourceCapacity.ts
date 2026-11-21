@@ -1,4 +1,4 @@
-// Atualizado: 2026-11-20 08:24 BRT. Snapshot autoritativo de recursos do Nexus no motor.
+// Atualizado: 2026-11-21 05:48 BRT. Snapshot autoritativo de recursos do Nexus no motor.
 import { createHash } from "node:crypto";
 import prisma from "@calcom/prisma";
 import { Prisma } from "@calcom/prisma/client";
@@ -103,9 +103,22 @@ export type NexusResourceCapacityReadback = {
 };
 
 export class NexusResourceCapacitySyncError extends Error {
-  constructor(public readonly code: "stale_version" | "version_conflict" | "binding_not_found") {
+  constructor(
+    public readonly code:
+      | "stale_version"
+      | "version_conflict"
+      | "binding_not_found"
+      | "existing_booking_location_required"
+      | "existing_booking_capacity_exceeded"
+  ) {
     super(code);
   }
+}
+
+function databaseErrorIncludes(error: unknown, marker: string) {
+  if (error instanceof Error && error.message.includes(marker)) return true;
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  return JSON.stringify(error.meta ?? {}).includes(marker);
 }
 
 function resourceKey(input: { externalResourceId: string; externalLocationId: string }) {
@@ -201,17 +214,33 @@ async function applySnapshot(
         return readback(tx, scope, state.sourceVersion);
       }
 
-      const eventTypeIds = Array.from(new Set(input.bindings.map((binding) => binding.eventTypeId)));
+      const existingBindings = await tx.nexusEventTypeResourceBinding.findMany({
+        where: { ...scope, active: true },
+        select: { id: true, eventTypeId: true, resourcePoolId: true },
+      });
+      const eventTypeIds = Array.from(
+        new Set([
+          ...input.bindings.map((binding) => binding.eventTypeId),
+          ...existingBindings.map((binding) => binding.eventTypeId),
+        ])
+      ).sort((left, right) => left - right);
       const eventTypes = eventTypeIds.length
-        ? await tx.eventType.findMany({
-            where: { id: { in: eventTypeIds }, userId: scope.ownerUserId },
-            select: { id: true, metadata: true },
-          })
+        ? await tx.$queryRaw<Array<{ id: number; userId: number | null; metadata: Prisma.JsonValue }>>`
+            SELECT "id", "userId", "metadata"
+            FROM "EventType"
+            WHERE "id" IN (${Prisma.join(eventTypeIds)})
+            ORDER BY "id"
+            FOR UPDATE
+          `
         : [];
       const eventTypesById = new Map(eventTypes.map((eventType) => [eventType.id, eventType]));
       for (const binding of input.bindings) {
         const eventType = eventTypesById.get(binding.eventTypeId);
-        if (!eventType || nexusServiceId(eventType.metadata) !== binding.externalServiceId) {
+        if (
+          !eventType ||
+          eventType.userId !== scope.ownerUserId ||
+          nexusServiceId(eventType.metadata) !== binding.externalServiceId
+        ) {
           throw new NexusResourceCapacitySyncError("binding_not_found");
         }
       }
@@ -296,10 +325,6 @@ async function applySnapshot(
         });
       }
 
-      const existingBindings = await tx.nexusEventTypeResourceBinding.findMany({
-        where: { ...scope, active: true },
-        select: { id: true, eventTypeId: true, resourcePoolId: true },
-      });
       const bindingsToDeactivate = existingBindings
         .filter((binding) => !activeBindingKeys.has(`${binding.eventTypeId}:${binding.resourcePoolId}`))
         .map((binding) => binding.id);
@@ -308,6 +333,16 @@ async function applySnapshot(
           where: { id: { in: bindingsToDeactivate } },
           data: { active: false, sourceVersion: input.version },
         });
+      }
+
+      if (eventTypeIds.length) {
+        // O reconciliador preserva allocations existentes e acrescenta apenas os pools
+        // agora exigidos para reservas futuras; qualquer ambiguidade aborta também o ACK.
+        await tx.$executeRaw`
+          SELECT nexus_reconcile_future_booking_resource_allocations(
+            ARRAY[${Prisma.join(eventTypeIds)}]::INTEGER[]
+          )
+        `;
       }
 
       await tx.nexusResourceCapacitySyncState.upsert({
@@ -348,6 +383,12 @@ export async function syncNexusResourceCapacity(
       return await applySnapshot(scope, input, hash);
     } catch (error) {
       if (error instanceof NexusResourceCapacitySyncError) throw error;
+      if (databaseErrorIncludes(error, "NEXUS_RESOURCE_EXISTING_BOOKING_LOCATION_REQUIRED")) {
+        throw new NexusResourceCapacitySyncError("existing_booking_location_required");
+      }
+      if (databaseErrorIncludes(error, "NEXUS_RESOURCE_CAPACITY_EXCEEDED")) {
+        throw new NexusResourceCapacitySyncError("existing_booking_capacity_exceeded");
+      }
       if (
         !(error instanceof Prisma.PrismaClientKnownRequestError) ||
         error.code !== "P2034" ||
