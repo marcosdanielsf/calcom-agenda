@@ -1,12 +1,14 @@
-// Atualizado: 2026-11-20 09:07 BRT.
+// Atualizado: 2026-11-21 05:38 BRT.
 import { execFileSync } from "node:child_process";
-import { createMocks } from "node-mocks-http";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { createMocks } from "node-mocks-http";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const harness = vi.hoisted(() => {
   let state: { ownerUserId: number; sourceVersion: number; payloadHash: string } | null = null;
   const tx = {
+    $queryRaw: vi.fn(async () => []),
+    $executeRaw: vi.fn(async () => 0),
     nexusResourceCapacitySyncState: {
       findUnique: vi.fn(async () => state),
       upsert: vi.fn(async ({ create, update }: { create: typeof state; update: typeof state }) => {
@@ -16,10 +18,12 @@ const harness = vi.hoisted(() => {
     },
     eventType: { findMany: vi.fn(async () => []) },
     nexusBookingResourcePool: {
+      upsert: vi.fn(async () => ({ id: "55555555-5555-4555-8555-555555555555" })),
       findMany: vi.fn(async () => []),
       updateMany: vi.fn(async () => ({ count: 0 })),
     },
     nexusEventTypeResourceBinding: {
+      upsert: vi.fn(async () => ({ id: "66666666-6666-4666-8666-666666666666" })),
       findMany: vi.fn(async () => []),
       updateMany: vi.fn(async () => ({ count: 0 })),
     },
@@ -37,6 +41,7 @@ const harness = vi.hoisted(() => {
 vi.mock("@calcom/prisma", () => ({ default: harness.prisma, prisma: harness.prisma }));
 vi.mock("@calcom/prisma/client", () => ({
   Prisma: {
+    join: (values: unknown[]) => values,
     PrismaClientKnownRequestError: class extends Error {},
     TransactionIsolationLevel: { Serializable: "Serializable" },
   },
@@ -179,6 +184,35 @@ describe("syncNexusResourceCapacity", () => {
         resources: [{ ...resource, active: false }],
       })
     ).rejects.toMatchObject({ code: "version_conflict" });
+  });
+
+  it("reconcilia reservas futuras antes de confirmar o ACK da versão", async () => {
+    harness.tx.$queryRaw.mockResolvedValueOnce([
+      { id: binding.eventTypeId, userId: scope.ownerUserId, metadata: { nexusServiceId: SERVICE } },
+    ]);
+
+    await expect(
+      syncNexusResourceCapacity(scope, { version: 1, resources: [resource], bindings: [binding] })
+    ).resolves.toMatchObject({ version: 1 });
+
+    expect(harness.tx.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(harness.tx.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      harness.tx.nexusResourceCapacitySyncState.upsert.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("não confirma o ACK quando reserva preexistente não identifica uma única unidade", async () => {
+    harness.tx.$queryRaw.mockResolvedValueOnce([
+      { id: binding.eventTypeId, userId: scope.ownerUserId, metadata: { nexusServiceId: SERVICE } },
+    ]);
+    harness.tx.$executeRaw.mockRejectedValueOnce(
+      new Error("NEXUS_RESOURCE_EXISTING_BOOKING_LOCATION_REQUIRED")
+    );
+
+    await expect(
+      syncNexusResourceCapacity(scope, { version: 1, resources: [resource], bindings: [binding] })
+    ).rejects.toMatchObject({ code: "existing_booking_location_required" });
+    expect(harness.tx.nexusResourceCapacitySyncState.upsert).not.toHaveBeenCalled();
   });
 });
 
