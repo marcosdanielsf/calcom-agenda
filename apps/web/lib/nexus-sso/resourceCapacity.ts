@@ -136,7 +136,7 @@ async function readback(
   version: number
 ): Promise<NexusResourceCapacityReadback> {
   const resources = await tx.nexusBookingResourcePool.findMany({
-    where: { tenantId: scope.tenantId, workspaceKey: scope.workspaceKey, ownerUserId: scope.ownerUserId },
+    where: { ...scope, sourceVersion: version },
     orderBy: [{ externalLocationId: "asc" }, { externalResourceId: "asc" }],
     select: {
       id: true,
@@ -147,7 +147,7 @@ async function readback(
     },
   });
   const bindings = await tx.nexusEventTypeResourceBinding.findMany({
-    where: { tenantId: scope.tenantId, workspaceKey: scope.workspaceKey, ownerUserId: scope.ownerUserId },
+    where: { ...scope, sourceVersion: version },
     orderBy: [{ eventTypeId: "asc" }, { resourcePoolId: "asc" }],
     select: {
       id: true,
@@ -251,7 +251,7 @@ async function applySnapshot(
       }
 
       const existingResources = await tx.nexusBookingResourcePool.findMany({
-        where: { tenantId: scope.tenantId, workspaceKey: scope.workspaceKey, ownerUserId: scope.ownerUserId },
+        where: { ...scope, active: true },
         select: { id: true, externalResourceId: true, externalLocationId: true },
       });
       const resourceSnapshotKeys = new Set(input.resources.map(resourceKey));
@@ -297,7 +297,7 @@ async function applySnapshot(
       }
 
       const existingBindings = await tx.nexusEventTypeResourceBinding.findMany({
-        where: { tenantId: scope.tenantId, workspaceKey: scope.workspaceKey, ownerUserId: scope.ownerUserId },
+        where: { ...scope, active: true },
         select: { id: true, eventTypeId: true, resourcePoolId: true },
       });
       const bindingsToDeactivate = existingBindings

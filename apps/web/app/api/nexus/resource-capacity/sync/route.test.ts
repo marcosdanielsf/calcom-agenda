@@ -178,8 +178,19 @@ describe("PUT /api/nexus/resource-capacity/sync", () => {
     expect((await call()).status).toBe(409);
   });
 
+  it("aceita o snapshot com o máximo de recursos e vínculos", async () => {
+    const resources = Array.from({ length: 500 }, () => ({
+      ...input().resources[0], externalResourceId: crypto.randomUUID(), name: "á".repeat(200),
+    }));
+    const bindings = resources.flatMap(resource => Array.from({ length: 4 }, (_, index) => ({
+      ...input().bindings[0], externalResourceId: resource.externalResourceId,
+      externalServiceId: crypto.randomUUID(), eventTypeId: index + 1,
+    })));
+    expect((await call({ version: 7, resources, bindings })).status).toBe(200);
+  });
+
   it("limita o payload antes de consumir o jti", async () => {
-    const body = JSON.stringify({ resources: [], bindings: [], pad: "x".repeat(260 * 1024) });
+    const body = JSON.stringify({ resources: [], bindings: [], pad: "x".repeat(2 * 1024 * 1024) });
     const response = await PUT(request(body, await sign(body)));
     expect(response.status).toBe(413);
     expect(prismaMock.verificationToken.create).not.toHaveBeenCalled();

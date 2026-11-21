@@ -18,7 +18,8 @@ import { importNexusPublicKey } from "@lib/nexus-sso/verifyToken";
 import { type NextRequest, NextResponse } from "next/server";
 
 const log = logger.getSubLogger({ prefix: ["nexus-resource-capacity"] });
-const MAX_BODY_BYTES = 256 * 1024;
+// Cabem 500 recursos (inclusive nomes escapados em JSON) e 2.000 vínculos.
+const MAX_BODY_BYTES = 2 * 1024 * 1024;
 
 const reply = (body: Record<string, unknown>, status: number) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
