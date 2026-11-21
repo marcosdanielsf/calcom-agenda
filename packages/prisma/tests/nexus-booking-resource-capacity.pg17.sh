@@ -8,10 +8,15 @@ container="nexus-capacity-pg17-$$"
 trap 'docker stop "${container}" >/dev/null 2>&1 || true' EXIT
 
 docker run --rm -d --name "${container}" -e POSTGRES_PASSWORD=test -e POSTGRES_DB=capacity postgres:17-alpine >/dev/null
+ready=false
 for _ in $(seq 1 60); do
-  docker exec "${container}" pg_isready -U postgres -d capacity >/dev/null 2>&1 && break
+  if docker exec "${container}" psql -v ON_ERROR_STOP=1 -U postgres -d capacity -c 'SELECT 1' >/dev/null 2>&1; then
+    ready=true
+    break
+  fi
   sleep 0.25
 done
+test "${ready}" = true
 docker exec -i "${container}" psql -v ON_ERROR_STOP=1 -U postgres -d capacity < "${script_dir}/nexus-booking-resource-capacity.pg17.sql" >/dev/null
 docker exec -i "${container}" psql -v ON_ERROR_STOP=1 -U postgres -d capacity < "${prisma_dir}/migrations/20261120073000_nexus_booking_resource_capacity/migration.sql" >/dev/null
 sql() { docker exec "${container}" psql -v ON_ERROR_STOP=1 -At -U postgres -d capacity -c "$1"; }
@@ -84,9 +89,30 @@ test "$(sql "SELECT count(*) FROM \"Booking\" WHERE \"uid\"='original-new'")" = 
 sql "UPDATE \"Booking\" SET \"status\"='cancelled' WHERE \"uid\"='destino-cheio'; INSERT INTO \"Booking\" (\"uid\",\"eventTypeId\",\"startTime\",\"endTime\",\"status\",\"metadata\") VALUES ('multi',2,'2030-01-02 11:00Z','2030-01-02 12:00Z','accepted','{}');" >/dev/null
 test "$(sql "SELECT count(*) FROM \"NexusBookingResourceAllocation\" a JOIN \"Booking\" b ON b.\"id\"=a.\"bookingId\" WHERE b.\"uid\"='multi'")" = 2
 
-# Remarcação preserva A sem override, troca A→B quando explícita e persiste o ID escolhido.
+# Multiunidade exige escolha; ref forjada nao sai do conjunto de pools ativos do eventType.
 loc_a='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb001'
 loc_b='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb002'
+set +e
+missing_location_error="$(docker exec "${container}" psql -v ON_ERROR_STOP=1 -U postgres -d capacity -c "INSERT INTO \"Booking\" (\"uid\",\"eventTypeId\",\"startTime\",\"endTime\",\"status\",\"metadata\") VALUES ('missing-location',3,'2030-01-20 09:00Z','2030-01-20 10:00Z','accepted','{}');" 2>&1)"
+missing_location_status=$?
+forged_location_error="$(docker exec "${container}" psql -v ON_ERROR_STOP=1 -U postgres -d capacity -c "INSERT INTO \"Booking\" (\"uid\",\"eventTypeId\",\"startTime\",\"endTime\",\"status\",\"metadata\") VALUES ('forged-location',3,'2030-01-20 09:00Z','2030-01-20 10:00Z','accepted','{\"nexusLocationRef\":\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"}');" 2>&1)"
+forged_location_status=$?
+set -e
+test "${missing_location_status}" -ne 0 && grep -q NEXUS_RESOURCE_LOCATION_REQUIRED <<<"${missing_location_error}"
+test "${forged_location_status}" -ne 0 && grep -q NEXUS_RESOURCE_LOCATION_NOT_BOUND <<<"${forged_location_error}"
+
+# A URL leva somente a ref opaca; o trigger resolve no binding ativo e grava o ID interno.
+loc_a_ref="$(sql "SELECT encode(sha256(convert_to('nexus-booking-location:v1:33333333-3333-4333-8333-333333333333:${loc_a}','UTF8')),'hex')")"
+sql "INSERT INTO \"Booking\" (\"uid\",\"eventTypeId\",\"startTime\",\"endTime\",\"status\",\"metadata\") VALUES ('opaque-a',3,'2030-01-20 09:00Z','2030-01-20 10:00Z','accepted','{\"nexusLocationRef\":\"${loc_a_ref}\"}');" >/dev/null
+test "$(sql "SELECT (b.\"metadata\"->>'nexusLocationRef')||'|'||p.\"externalLocationId\" FROM \"Booking\" b JOIN \"NexusBookingResourceAllocation\" a ON a.\"bookingId\"=b.\"id\" JOIN \"NexusBookingResourcePool\" p ON p.\"id\"=a.\"resourcePoolId\" WHERE b.\"uid\"='opaque-a'")" = "${loc_a_ref}|${loc_a}"
+
+# Se uma reserva legada ainda tiver nexusLocationId, alterar a ref opaca precisa vencer o fast path
+# e mover a alocacao; o id antigo no JSON nunca autoriza pool fora do eventType.
+loc_b_ref="$(sql "SELECT encode(sha256(convert_to('nexus-booking-location:v1:33333333-3333-4333-8333-333333333333:${loc_b}','UTF8')),'hex')")"
+sql "INSERT INTO \"Booking\" (\"uid\",\"eventTypeId\",\"startTime\",\"endTime\",\"status\",\"metadata\") VALUES ('opaque-update',3,'2030-01-21 09:00Z','2030-01-21 10:00Z','accepted','{\"nexusLocationId\":\"${loc_a}\",\"nexusLocationRef\":\"${loc_a_ref}\"}'); UPDATE \"Booking\" SET \"metadata\"=jsonb_set(\"metadata\",'{nexusLocationRef}',to_jsonb('${loc_b_ref}'::text),true) WHERE \"uid\"='opaque-update';" >/dev/null
+test "$(sql "SELECT (b.\"metadata\"->>'nexusLocationRef')||'|'||p.\"externalLocationId\" FROM \"Booking\" b JOIN \"NexusBookingResourceAllocation\" a ON a.\"bookingId\"=b.\"id\" JOIN \"NexusBookingResourcePool\" p ON p.\"id\"=a.\"resourcePoolId\" WHERE b.\"uid\"='opaque-update'")" = "${loc_b_ref}|${loc_b}"
+
+# Remarcação preserva A sem override, troca A→B quando explícita e persiste o ID escolhido.
 sql "INSERT INTO \"Booking\" (\"uid\",\"eventTypeId\",\"startTime\",\"endTime\",\"status\",\"metadata\") VALUES ('move-a',3,'2030-02-01 09:00Z','2030-02-01 10:00Z','accepted','{\"nexusLocationId\":\"${loc_a}\"}'); BEGIN; UPDATE \"Booking\" SET \"status\"='cancelled' WHERE \"uid\"='move-a'; INSERT INTO \"Booking\" (\"uid\",\"eventTypeId\",\"startTime\",\"endTime\",\"status\",\"metadata\") VALUES ('move-a-2',3,'2030-02-01 10:00Z','2030-02-01 11:00Z','accepted','{\"nexusLocationId\":\"${loc_a}\"}'); COMMIT;" >/dev/null
 test "$(sql "SELECT \"metadata\"->>'nexusLocationId' FROM \"Booking\" WHERE \"uid\"='move-a-2'")" = "${loc_a}"
 # Sucesso libera imediatamente o slot antigo na mesma unidade.

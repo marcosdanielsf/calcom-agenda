@@ -1,4 +1,4 @@
--- Atualizado: 2026-11-20 08:06 BRT.
+-- Atualizado: 2026-11-21 04:42 BRT.
 -- O banco do motor e a autoridade final: availability de tela pode ficar obsoleta
 -- entre leitura e insert, portanto a capacidade precisa ser serializada na transacao da Booking.
 
@@ -101,6 +101,8 @@ AS $$
 DECLARE
   selected_location UUID;
   location_text TEXT;
+  location_ref TEXT;
+  matched_location_count INTEGER;
   location_count INTEGER;
   allocation_count INTEGER;
   pool_record RECORD;
@@ -118,7 +120,8 @@ BEGIN
   -- quando o tipo/unidade mudou ou quando uma Booking legada ainda nao tem snapshot.
   IF TG_OP = 'UPDATE' AND allocation_count > 0
      AND OLD."eventTypeId" IS NOT DISTINCT FROM NEW."eventTypeId"
-     AND (OLD."metadata" ->> 'nexusLocationId') IS NOT DISTINCT FROM (NEW."metadata" ->> 'nexusLocationId') THEN
+     AND (OLD."metadata" ->> 'nexusLocationId') IS NOT DISTINCT FROM (NEW."metadata" ->> 'nexusLocationId')
+     AND (OLD."metadata" ->> 'nexusLocationRef') IS NOT DISTINCT FROM (NEW."metadata" ->> 'nexusLocationRef') THEN
     NULL;
   ELSE
     DELETE FROM "NexusBookingResourceAllocation" WHERE "bookingId" = NEW."id";
@@ -135,7 +138,29 @@ BEGIN
     END IF;
 
     location_text := NULLIF(NEW."metadata" ->> 'nexusLocationId', '');
-    IF location_text IS NOT NULL THEN
+    location_ref := NULLIF(NEW."metadata" ->> 'nexusLocationRef', '');
+    IF location_ref IS NOT NULL THEN
+      IF location_ref !~ '^[0-9a-f]{64}$' THEN
+        RAISE EXCEPTION USING
+          ERRCODE = '23514',
+          MESSAGE = 'NEXUS_RESOURCE_LOCATION_INVALID',
+          CONSTRAINT = 'NexusBooking_resource_location';
+      END IF;
+      SELECT count(DISTINCT pool."externalLocationId"), min(pool."externalLocationId"::TEXT)::UUID
+        INTO matched_location_count, selected_location
+      FROM "NexusEventTypeResourceBinding" binding
+      JOIN "NexusBookingResourcePool" pool ON pool."id" = binding."resourcePoolId"
+      WHERE binding."eventTypeId" = NEW."eventTypeId"
+        AND binding."active" = true
+        AND pool."active" = true
+        AND encode(sha256(convert_to('nexus-booking-location:v1:' || lower(binding."externalServiceId"::TEXT) || ':' || lower(pool."externalLocationId"::TEXT), 'UTF8')), 'hex') = location_ref;
+      IF matched_location_count <> 1 THEN
+        RAISE EXCEPTION USING
+          ERRCODE = '23514',
+          MESSAGE = 'NEXUS_RESOURCE_LOCATION_NOT_BOUND',
+          CONSTRAINT = 'NexusBooking_resource_location';
+      END IF;
+    ELSIF location_text IS NOT NULL THEN
       IF location_text !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
         RAISE EXCEPTION USING
           ERRCODE = '23514',
