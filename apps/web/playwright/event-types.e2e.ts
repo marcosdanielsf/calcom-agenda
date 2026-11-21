@@ -28,6 +28,41 @@ test.describe("Event Types tests", () => {
 
     await expect(locator).toBeVisible();
   });
+
+  test("Nexus switches calendar groups from the desktop sidebar and mobile tabs", async ({ page, users }) => {
+    const user = await users.create({}, { hasTeam: true });
+
+    try {
+      await user.apiLogin();
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto("/event-types?shell=nexus");
+
+      const sidebar = page.getByRole("navigation", { name: "Calendars", exact: true });
+      const team = sidebar.locator('a[href*="teamId="]');
+      const personal = sidebar.locator('a[href="/event-types"]');
+      await expect(personal).toHaveAttribute("aria-current", "page");
+      const teamHref = await team.getAttribute("href");
+      expect(teamHref).toMatch(/teamId=\d+/);
+
+      await page.goto("/event-types?teamId=999999&shell=nexus");
+      await expect(page.getByTestId("event-types")).toBeVisible();
+      await expect(personal).toHaveAttribute("aria-current", "page");
+
+      await team.click();
+      await expect(team).toHaveAttribute("aria-current", "page");
+      await expect(page.getByTestId("event-types")).toBeVisible();
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(sidebar).toBeHidden();
+      const mobileTabs = page.getByRole("navigation", { name: "Tabs", exact: true });
+      await expect(mobileTabs.locator(`a[href="${teamHref}"]`)).toHaveAttribute("aria-current", "page");
+      await mobileTabs.locator('a[href="/event-types"]').click();
+      await expect(page.getByTestId("event-types")).toBeVisible();
+      await expect(mobileTabs.locator('a[href="/event-types"]')).toHaveAttribute("aria-current", "page");
+    } finally {
+      await users.deleteAll();
+    }
+  });
 });
 
 test.describe("Event Types tests", () => {
