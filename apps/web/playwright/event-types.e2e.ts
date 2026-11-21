@@ -2,7 +2,6 @@ import { WEBAPP_URL } from "@calcom/lib/constants";
 import { randomString } from "@calcom/lib/random";
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-
 import { test } from "./lib/fixtures";
 import {
   bookTimeSlot,
@@ -183,7 +182,9 @@ test.describe("Event Types tests", () => {
       });
     });
 
-    test("editor de reunião mantém navegação, salvar e reabertura utilizáveis no celular", async ({ page }) => {
+    test("editor de reunião mantém navegação, salvar e reabertura utilizáveis no celular", async ({
+      page,
+    }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoFirstEventType(page);
 
