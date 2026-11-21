@@ -306,7 +306,10 @@ describe("POST /api/nexus/event-types, webhook escopado da conta da pagina", () 
     const segunda = await okCall(escopo);
     expect(segunda.status).toBe(200);
     expect(prismaMock.eventType.create).toHaveBeenCalledTimes(1);
-    expect(prismaMock.webhook.create).toHaveBeenCalledTimes(2);
+    // Uma tentativa falhou. O retry cria um webhook do tipo e um da conta.
+    expect(prismaMock.webhook.create).toHaveBeenCalledTimes(3);
+    expect(prismaMock.webhook.create.mock.calls[1][0].data).toHaveProperty("eventType");
+    expect(prismaMock.webhook.create.mock.calls[2][0].data).toHaveProperty("user");
     expect(prismaMock.webhook.update).not.toHaveBeenCalled();
   });
 
