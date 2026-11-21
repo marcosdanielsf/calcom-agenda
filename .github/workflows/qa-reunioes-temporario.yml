@@ -1,0 +1,47 @@
+name: qa-reunioes-temporario
+
+on:
+  push:
+    branches: [qa/nexus-agenda-reunioes-20261121]
+
+permissions:
+  contents: read
+
+jobs:
+  reunioes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: calendso
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres -d calendso"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/calendso
+      DATABASE_DIRECT_URL: postgresql://postgres:postgres@localhost:5432/calendso
+      NEXT_PUBLIC_WEBAPP_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: qa-only-nextauth-secret
+      CALENDSO_ENCRYPTION_KEY: qa-only-encryption-key
+      CALCOM_TELEMETRY_DISABLED: "1"
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - run: corepack enable
+      - run: yarn install --immutable
+      - run: yarn playwright install --with-deps chromium
+      - run: yarn biome check apps/web/modules/event-types/components/EventTypeLayout.tsx apps/web/modules/event-types/views/event-types-listing-view.tsx apps/web/playwright/event-types.e2e.ts
+      - run: yarn db-seed
+      - run: yarn playwright test apps/web/playwright/event-types.e2e.ts --project=@calcom/web --grep "Nexus switches calendar groups"
