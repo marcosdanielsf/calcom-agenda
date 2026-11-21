@@ -177,36 +177,37 @@ model EventType {
   profileId Int?
   profile   Profile? @relation(fields: [profileId], references: [id])
 
-  team                               Team?                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team                               Team?                           @relation(fields: [teamId], references: [id], onDelete: Cascade)
   teamId                             Int?
   hashedLink                         HashedLink[]
   bookings                           Booking[]
+  nexusResourceBindings              NexusEventTypeResourceBinding[]
   availability                       Availability[]
   webhooks                           Webhook[]
   destinationCalendar                DestinationCalendar?
-  useEventLevelSelectedCalendars     Boolean                @default(false)
+  useEventLevelSelectedCalendars     Boolean                         @default(false)
   eventName                          String?
   customInputs                       EventTypeCustomInput[]
   parentId                           Int?
-  parent                             EventType?             @relation("managed_eventtype", fields: [parentId], references: [id], onDelete: Cascade)
-  children                           EventType[]            @relation("managed_eventtype")
+  parent                             EventType?                      @relation("managed_eventtype", fields: [parentId], references: [id], onDelete: Cascade)
+  children                           EventType[]                     @relation("managed_eventtype")
   /// @zod.import(["import { eventTypeBookingFields } from '../../zod-utils'"]).custom.use(eventTypeBookingFields)
   bookingFields                      Json?
   timeZone                           String?
-  periodType                         PeriodType             @default(UNLIMITED)
+  periodType                         PeriodType                      @default(UNLIMITED)
   /// @zod.import(["import { coerceToDate } from '../../zod-utils'"]).custom.use(coerceToDate)
   periodStartDate                    DateTime?
   /// @zod.import(["import { coerceToDate } from '../../zod-utils'"]).custom.use(coerceToDate)
   periodEndDate                      DateTime?
   periodDays                         Int?
   periodCountCalendarDays            Boolean?
-  lockTimeZoneToggleOnBookingPage    Boolean                @default(false)
+  lockTimeZoneToggleOnBookingPage    Boolean                         @default(false)
   lockedTimeZone                     String?
-  requiresConfirmation               Boolean                @default(false)
-  requiresConfirmationWillBlockSlot  Boolean                @default(false)
-  requiresConfirmationForFreeEmail   Boolean                @default(false)
-  requiresBookerEmailVerification    Boolean                @default(false)
-  canSendCalVideoTranscriptionEmails Boolean                @default(true)
+  requiresConfirmation               Boolean                         @default(false)
+  requiresConfirmationWillBlockSlot  Boolean                         @default(false)
+  requiresConfirmationForFreeEmail   Boolean                         @default(false)
+  requiresBookerEmailVerification    Boolean                         @default(false)
+  canSendCalVideoTranscriptionEmails Boolean                         @default(true)
 
   autoTranslateDescriptionEnabled          Boolean                @default(false)
   autoTranslateInstantMeetingTitleEnabled  Boolean                @default(true)
@@ -849,69 +850,70 @@ enum BookingStatus {
 }
 
 model Booking {
-  id                     Int                        @id @default(autoincrement())
-  uid                    String                     @unique
+  id                       Int                              @id @default(autoincrement())
+  uid                      String                           @unique
   // (optional) UID based on slot start/end time & email against duplicates
-  idempotencyKey         String?                    @unique
-  user                   User?                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId                 Int?
+  idempotencyKey           String?                          @unique
+  user                     User?                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                   Int?
   // User's email at the time of booking
   /// @zod.import(["import { emailSchema } from '../../zod-utils'"]).custom.use(emailSchema)
-  userPrimaryEmail       String?
-  references             BookingReference[]
-  eventType              EventType?                 @relation(fields: [eventTypeId], references: [id])
-  eventTypeId            Int?
-  title                  String
-  description            String?
-  customInputs           Json?
+  userPrimaryEmail         String?
+  references               BookingReference[]
+  eventType                EventType?                       @relation(fields: [eventTypeId], references: [id])
+  eventTypeId              Int?
+  title                    String
+  description              String?
+  customInputs             Json?
   /// @zod.import(["import { bookingResponses } from '../../zod-utils'"]).custom.use(bookingResponses)
-  responses              Json?
-  startTime              DateTime
-  endTime                DateTime
-  attendees              Attendee[]
-  location               String?
-  createdAt              DateTime                   @default(now())
-  updatedAt              DateTime?                  @updatedAt
-  status                 BookingStatus              @default(ACCEPTED)
-  paid                   Boolean                    @default(false)
-  payment                Payment[]
-  destinationCalendar    DestinationCalendar?       @relation(fields: [destinationCalendarId], references: [id])
-  destinationCalendarId  Int?
-  cancellationReason     String?
-  rejectionReason        String?
-  reassignReason         String?
-  reassignBy             User?                      @relation("reassignByUser", fields: [reassignById], references: [id])
-  reassignById           Int?
-  dynamicEventSlugRef    String?
-  dynamicGroupSlugRef    String?
-  rescheduled            Boolean?
-  fromReschedule         String?
-  recurringEventId       String?
-  smsReminderNumber      String?
-  scheduledJobs          String[] // scheduledJobs is deprecated, please use scheduledTriggers instead
-  seatsReferences        BookingSeat[]
+  responses                Json?
+  startTime                DateTime
+  endTime                  DateTime
+  attendees                Attendee[]
+  location                 String?
+  createdAt                DateTime                         @default(now())
+  updatedAt                DateTime?                        @updatedAt
+  status                   BookingStatus                    @default(ACCEPTED)
+  paid                     Boolean                          @default(false)
+  payment                  Payment[]
+  destinationCalendar      DestinationCalendar?             @relation(fields: [destinationCalendarId], references: [id])
+  destinationCalendarId    Int?
+  cancellationReason       String?
+  rejectionReason          String?
+  reassignReason           String?
+  reassignBy               User?                            @relation("reassignByUser", fields: [reassignById], references: [id])
+  reassignById             Int?
+  dynamicEventSlugRef      String?
+  dynamicGroupSlugRef      String?
+  rescheduled              Boolean?
+  fromReschedule           String?
+  recurringEventId         String?
+  smsReminderNumber        String?
+  scheduledJobs            String[] // scheduledJobs is deprecated, please use scheduledTriggers instead
+  seatsReferences          BookingSeat[]
   /// @zod.import(["import { bookingMetadataSchema } from '../../zod-utils'"]).custom.use(bookingMetadataSchema)
-  metadata               Json?
-  isRecorded             Boolean                    @default(false)
-  iCalUID                String?                    @default("")
-  iCalSequence           Int                        @default(0)
-  instantMeetingToken    InstantMeetingToken?
-  rating                 Int?
-  ratingFeedback         String?
-  noShowHost             Boolean?                   @default(false)
-  scheduledTriggers      WebhookScheduledTriggers[]
-  oneTimePassword        String?                    @unique @default(uuid())
+  metadata                 Json?
+  isRecorded               Boolean                          @default(false)
+  iCalUID                  String?                          @default("")
+  iCalSequence             Int                              @default(0)
+  instantMeetingToken      InstantMeetingToken?
+  rating                   Int?
+  ratingFeedback           String?
+  noShowHost               Boolean?                         @default(false)
+  scheduledTriggers        WebhookScheduledTriggers[]
+  oneTimePassword          String?                          @unique @default(uuid())
   /// @zod.import(["import { emailSchema } from '../../zod-utils'"]).custom.use(emailSchema)
-  cancelledBy            String?
+  cancelledBy              String?
   /// @zod.import(["import { emailSchema } from '../../zod-utils'"]).custom.use(emailSchema)
-  rescheduledBy          String?
-  assignmentReason       AssignmentReason[]
-  internalNote           BookingInternalNote[]
-  creationSource         CreationSource?
-  tracking               Tracking?
-  expenseLogs            CreditExpenseLog[]
-  report                 BookingReport?
-  wrongAssignmentReports WrongAssignmentReport[]
+  rescheduledBy            String?
+  assignmentReason         AssignmentReason[]
+  internalNote             BookingInternalNote[]
+  creationSource           CreationSource?
+  tracking                 Tracking?
+  expenseLogs              CreditExpenseLog[]
+  report                   BookingReport?
+  wrongAssignmentReports   WrongAssignmentReport[]
+  nexusResourceAllocations NexusBookingResourceAllocation[]
 
   // @@partial_index([reassignById])
 
@@ -927,6 +929,79 @@ model Booking {
   @@index([userId, status, startTime])
   @@index([eventTypeId, status])
   @@index([userId, createdAt])
+}
+
+// Atualizado: 2026-11-20 08:06 BRT. Um pool representa um recurso
+// dentro de uma unidade; a mesma sala pode ter capacidades diferentes por unidade.
+model NexusBookingResourcePool {
+  id                 String                           @id @default(uuid()) @db.Uuid
+  tenantId           String                           @db.Uuid
+  workspaceKey       String
+  ownerUserId        Int
+  externalResourceId String                           @db.Uuid
+  externalLocationId String                           @db.Uuid
+  name               String
+  capacity           Int
+  active             Boolean                          @default(true)
+  sourceVersion      Int
+  createdAt          DateTime                         @default(now())
+  updatedAt          DateTime                         @updatedAt
+  bindings           NexusEventTypeResourceBinding[]
+  allocations        NexusBookingResourceAllocation[]
+
+  @@unique([tenantId, workspaceKey, externalResourceId, externalLocationId])
+  @@index([tenantId, workspaceKey, active])
+}
+
+// Um tipo de agendamento pode exigir vários recursos; cada vínculo consome uma unidade.
+model NexusEventTypeResourceBinding {
+  id                String                   @id @default(uuid()) @db.Uuid
+  tenantId          String                   @db.Uuid
+  workspaceKey      String
+  ownerUserId       Int
+  externalServiceId String                   @db.Uuid
+  eventTypeId       Int
+  eventType         EventType                @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  resourcePoolId    String                   @db.Uuid
+  resourcePool      NexusBookingResourcePool @relation(fields: [resourcePoolId], references: [id], onDelete: Restrict)
+  units             Int                      @default(1) @db.SmallInt
+  active            Boolean                  @default(true)
+  sourceVersion     Int
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@unique([eventTypeId, resourcePoolId])
+  @@unique([tenantId, workspaceKey, externalServiceId, resourcePoolId])
+  @@index([eventTypeId, active])
+  @@index([resourcePoolId, active])
+}
+
+// Snapshot dos recursos consumidos pela reserva. Mudanças futuras no catálogo não
+// reescrevem compromissos já assumidos; cancelamento libera as alocações pelo status.
+model NexusBookingResourceAllocation {
+  bookingId      Int
+  booking        Booking                  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  resourcePoolId String                   @db.Uuid
+  resourcePool   NexusBookingResourcePool @relation(fields: [resourcePoolId], references: [id], onDelete: Restrict)
+  units          Int                      @default(1) @db.SmallInt
+  createdAt      DateTime                 @default(now())
+
+  @@id([bookingId, resourcePoolId])
+  @@index([resourcePoolId])
+}
+
+// Protege a idempotência do snapshot completo enviado pelo Nexus.
+model NexusResourceCapacitySyncState {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @db.Uuid
+  workspaceKey  String
+  ownerUserId   Int
+  sourceVersion Int
+  payloadHash   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, workspaceKey])
 }
 
 model Tracking {
