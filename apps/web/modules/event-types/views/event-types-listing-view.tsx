@@ -47,6 +47,7 @@ import {
 } from "@calcom/web/modules/event-types/components/CreateEventTypeDialog";
 import { DuplicateDialog } from "@calcom/web/modules/event-types/components/DuplicateDialog";
 import { InfiniteSkeletonLoader } from "@calcom/web/modules/event-types/components/SkeletonLoader";
+import { useNexusShell } from "@calcom/web/modules/shell/NexusShell";
 import { SearchIcon } from "@coss/ui/icons";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { TRPCClientError } from "@trpc/client";
@@ -534,7 +535,7 @@ export const InfiniteEventTypeList = ({
   });
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-md border border-subtle bg-default">
+    <div className="flex flex-col overflow-hidden rounded-lg border border-subtle bg-default shadow-xs">
       <ul ref={parent} className="static! w-full divide-y divide-subtle" data-testid="event-types">
         {pages.map((page, pageIdx) => {
           return page?.eventTypes?.map((type, index) => {
@@ -900,7 +901,7 @@ const CreateFirstEventTypeView = ({ slug, searchTerm }: { slug: string; searchTe
       Icon="link"
       headline={searchTerm ? t("no_result_found_for", { searchTerm }) : t("new_event_type_heading")}
       description={t("new_event_type_description")}
-      className="mb-16"
+      className="mb-16 min-h-80 px-4 py-8"
       buttonRaw={
         <Button href={`?dialog=new&eventPage=${slug}`} variant="button">
           {t("create")}
@@ -917,11 +918,11 @@ const CTA = ({ profileOptions }: { profileOptions: ProfileOption[] }) => {
   if (!profileOptions.length) return null;
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
       <TextField
-        className="max-w-64"
+        className="w-full sm:max-w-64"
         addOnLeading={<SearchIcon className="h-4 w-4 text-subtle" />}
-        containerClassName="max-w-64 focus:ring-offset-0! *:mb-0"
+        containerClassName="w-full sm:max-w-64 focus:ring-offset-0! *:mb-0"
         type="search"
         value={searchTerm}
         autoComplete="false"
@@ -930,9 +931,7 @@ const CTA = ({ profileOptions }: { profileOptions: ProfileOption[] }) => {
         }}
         placeholder={t("search")}
       />
-      <Button
-        data-testid="new-event-type"
-        href={`?dialog=new&eventPage=${profileOptions[0]?.slug ?? ""}`}>
+      <Button data-testid="new-event-type" href={`?dialog=new&eventPage=${profileOptions[0]?.slug ?? ""}`}>
         {t("new")}
       </Button>
       <CreateEventTypeDialog profileOptions={profileOptions} />
@@ -953,7 +952,7 @@ const EmptyEventTypeList = ({
       Icon="link"
       headline={searchTerm ? t("no_result_found_for", { searchTerm }) : t("team_no_event_types")}
       description={t("new_team_event_type_description")}
-      className="mb-16"
+      className="mb-16 min-h-80 px-4 py-8"
       buttonRaw={
         <Button href={`?dialog=new&eventPage=${group.profile.slug}&teamId=${group.teamId}`} variant="button">
           {t("create")}
@@ -971,6 +970,8 @@ const InfiniteScrollMain = ({
   profiles: GetUserEventGroupsResponse["profiles"];
 }) => {
   const searchParams = useSearchParams();
+  const nexus = useNexusShell();
+  const { t } = useLocale();
   const { data } = useTypedQuery(querySchema);
   const tabs = eventTypeGroups.map((item) => ({
     name: item.profile.name ?? "",
@@ -981,13 +982,36 @@ const InfiniteScrollMain = ({
   }));
 
   const activeEventTypeGroup =
-    eventTypeGroups.filter((item) => item.teamId === data.teamId) ?? eventTypeGroups[0];
+    eventTypeGroups.find((item) => item.teamId === data.teamId) ?? eventTypeGroups[0];
+  const hasGroups = eventTypeGroups.length > 1;
 
   return (
     <>
-      {eventTypeGroups.length > 1 && <HorizontalTabs tabs={tabs} />}
-      {eventTypeGroups.length >= 1 && <InfiniteTeamsTab activeEventTypeGroup={activeEventTypeGroup[0]} />}
-      {eventTypeGroups.length === 0 && <CreateFirstEventTypeView slug={profiles[0].slug ?? ""} />}
+      <div
+        className={classNames(nexus && hasGroups && "lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-5")}>
+        {nexus && hasGroups && (
+          <nav aria-label={t("calendars")} className="hidden self-start space-y-1 lg:block">
+            {tabs.map((tab, index) => (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={eventTypeGroups[index] === activeEventTypeGroup ? "page" : undefined}
+                className="text-default hover:bg-subtle aria-[current=page]:bg-subtle aria-[current=page]:text-emphasis block break-words rounded-md px-3 py-2 text-sm font-medium">
+                {tab.name}
+              </Link>
+            ))}
+          </nav>
+        )}
+        <div className="min-w-0">
+          {hasGroups && (
+            <div className={classNames(nexus && "lg:hidden")}>
+              <HorizontalTabs tabs={tabs} />
+            </div>
+          )}
+          {activeEventTypeGroup && <InfiniteTeamsTab activeEventTypeGroup={activeEventTypeGroup} />}
+          {eventTypeGroups.length === 0 && <CreateFirstEventTypeView slug={profiles[0].slug ?? ""} />}
+        </div>
+      </div>
       <EventTypeEmbedDialog />
       {searchParams?.get("dialog") === "duplicate" && <DuplicateDialog />}
     </>

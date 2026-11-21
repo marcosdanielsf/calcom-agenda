@@ -2,7 +2,6 @@ import { WEBAPP_URL } from "@calcom/lib/constants";
 import { randomString } from "@calcom/lib/random";
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-
 import { test } from "./lib/fixtures";
 import {
   bookTimeSlot,
@@ -27,6 +26,41 @@ test.describe("Event Types tests", () => {
     const locator = page.getByRole("heading", { name: "Event Types" });
 
     await expect(locator).toBeVisible();
+  });
+
+  test("Nexus switches calendar groups from the desktop sidebar and mobile tabs", async ({ page, users }) => {
+    const user = await users.create({}, { hasTeam: true });
+
+    try {
+      await user.apiLogin();
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto("/event-types?shell=nexus");
+
+      const sidebar = page.getByRole("navigation", { name: "Calendars", exact: true });
+      const team = sidebar.locator('a[href*="teamId="]');
+      const personal = sidebar.locator('a[href="/event-types"]');
+      await expect(personal).toHaveAttribute("aria-current", "page");
+      const teamHref = await team.getAttribute("href");
+      expect(teamHref).toMatch(/teamId=\d+/);
+
+      await page.goto("/event-types?teamId=999999&shell=nexus");
+      await expect(page.getByTestId("event-types")).toBeVisible();
+      await expect(personal).toHaveAttribute("aria-current", "page");
+
+      await team.click();
+      await expect(team).toHaveAttribute("aria-current", "page");
+      await expect(page.getByTestId("event-types")).toBeVisible();
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(sidebar).toBeHidden();
+      const mobileTabs = page.getByRole("navigation", { name: "Tabs", exact: true });
+      await expect(mobileTabs.locator(`a[href="${teamHref}"]`)).toHaveAttribute("aria-current", "page");
+      await mobileTabs.locator('a[href="/event-types"]').click();
+      await expect(page.getByTestId("event-types")).toBeVisible();
+      await expect(mobileTabs.locator('a[href="/event-types"]')).toHaveAttribute("aria-current", "page");
+    } finally {
+      await users.deleteAll();
+    }
   });
 });
 
@@ -146,6 +180,34 @@ test.describe("Event Types tests", () => {
       await submitAndWaitForResponse(page, "/api/trpc/eventTypesHeavy/update?batch=1", {
         action: () => page.locator("[data-testid=update-eventtype]").click(),
       });
+    });
+
+    test("editor de reunião mantém navegação, salvar e reabertura utilizáveis no celular", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await gotoFirstEventType(page);
+
+      await expect(page.getByTestId("nexus-meeting-editor")).toBeVisible();
+      await expect(page.getByTestId("horizontal-tab-basics")).toBeVisible();
+      await expect(page.getByTestId("event-title")).toBeVisible();
+      await expect(page.getByTestId("update-eventtype")).toBeVisible();
+
+      const title = `Reunião móvel ${randomString(4)}`;
+      await page.getByTestId("event-title").fill(title);
+      await submitAndWaitForResponse(page, "/api/trpc/eventTypesHeavy/update?batch=1", {
+        action: () => page.getByTestId("update-eventtype").click(),
+      });
+      await page.reload();
+      await expect(page.getByTestId("event-title")).toHaveValue(title);
+
+      await page.getByTestId("horizontal-tab-availability").click();
+      await expect(page).toHaveURL(/tabName=availability/);
+
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+      );
+      expect(overflow).toBeLessThanOrEqual(1);
     });
 
     test("can add multiple organizer address", async ({ page }) => {
