@@ -8,6 +8,8 @@ import {
   NexusSsoJtiReusedError,
   resolveNexusUser,
 } from "@lib/nexus-sso/provision";
+import { ensureNexusUserWebhook } from "@lib/nexus-sso/eventTypes";
+import { webhookFor } from "@lib/nexus-sso/teamEventTypes";
 import { buildSessionCookie } from "@lib/nexus-sso/session";
 import { importNexusPublicKey, verifyNexusToken } from "@lib/nexus-sso/verifyToken";
 import { type NextRequest, NextResponse } from "next/server";
@@ -68,6 +70,18 @@ async function handler(req: NextRequest) {
   } catch (e) {
     if (e instanceof NexusSsoEmailConflictError) return fail("agenda_email_conflict", 409);
     throw e;
+  }
+
+  // Cobre conta que ja existe: servico criado na tela do motor nao tem webhook proprio. Falha aqui nao derruba o login.
+  if (claims.scope) {
+    try {
+      await ensureNexusUserWebhook(user.id, webhookFor(claims.scope));
+    } catch (e) {
+      log.error("nao garantiu o webhook da conta", {
+        userId: user.id,
+        message: e instanceof Error ? e.message : "desconhecido",
+      });
+    }
   }
 
   const cookie = await buildSessionCookie({ user, secret, webappUrl: WEBAPP_URL });

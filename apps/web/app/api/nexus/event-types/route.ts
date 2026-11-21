@@ -7,6 +7,7 @@ import logger from "@calcom/lib/logger";
 import prisma from "@calcom/prisma";
 import {
   ensureNexusEventTypeWebhook,
+  ensureNexusUserWebhook,
   eventTypeScopeOf,
   nexusEventTypeInputSchema,
   upsertNexusEventType,
@@ -94,7 +95,10 @@ async function handler(req: NextRequest) {
   // tenantId e workspaceKey nao sao colunas do tipo: ficam so no endereco do webhook.
   const { tenantId: _t, workspaceKey: _w, ...tipo } = parsed.data;
   const result = await upsertNexusEventType(user.id, tipo);
-  if (webhook) await ensureNexusEventTypeWebhook(result.eventTypeId, webhook);
+  if (webhook) {
+    await ensureNexusEventTypeWebhook(result.eventTypeId, webhook);
+    await ensureNexusUserWebhook(user.id, webhook);
+  }
   const owner = await prisma.user.findUnique({ where: { id: user.id }, select: { username: true } });
   if (!owner?.username) {
     log.error("dono sem usuario publico", { userId: user.id });

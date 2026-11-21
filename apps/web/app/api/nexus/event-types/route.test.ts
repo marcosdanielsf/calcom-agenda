@@ -248,6 +248,10 @@ describe("POST /api/nexus/event-types, webhook escopado da conta da pagina", () 
     expect(args.data.eventTriggers).toEqual(
       expect.arrayContaining(["BOOKING_CREATED", "BOOKING_RESCHEDULED", "BOOKING_CANCELLED"])
     );
+    // Webhook de nivel de usuario da conta: mesmo destino e segredo, sem tipo.
+    const conta = prismaMock.webhook.create.mock.calls[1][0] as { data: Record<string, unknown> };
+    expect(conta.data).toMatchObject({ subscriberUrl: args.data.subscriberUrl, secret: derivado, user: { connect: {} } });
+    expect(conta.data).not.toHaveProperty("eventType");
   });
 
   it("editar o tipo atualiza o webhook que ja existe e nao cria outro", async () => {

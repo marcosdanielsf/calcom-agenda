@@ -16,6 +16,7 @@ const host = z
     email: z.string().email().max(320),
     name: z.string().max(200).nullable(),
     priority: z.number().int().min(0).max(4),
+    weight: z.number().int().min(1).max(1000).optional(),
   })
   .strict();
 
@@ -66,7 +67,7 @@ export type NexusTeamCalendar = {
   kind: "round_robin" | "collective";
   distribution: "availability" | "equal";
   hidden: boolean;
-  hosts: { sub: string | null; email: string; name: string | null; priority: number }[];
+  hosts: { sub: string | null; email: string; name: string | null; priority: number; weight: number }[];
 };
 
 export class NexusTeamWebhookUnconfiguredError extends Error {}
@@ -158,6 +159,7 @@ async function listCalendars(s: Scope): Promise<NexusTeamCalendar[]> {
       hosts: {
         select: {
           priority: true,
+          weight: true,
           user: {
             select: {
               email: true,
@@ -185,6 +187,7 @@ async function listCalendars(s: Scope): Promise<NexusTeamCalendar[]> {
       email: h.user.email,
       name: h.user.name,
       priority: h.priority ?? 2,
+      weight: h.weight ?? 100,
     })),
   }));
 }
@@ -204,7 +207,7 @@ async function resolveHosts(teamId: number, input: CalendarInput) {
       memberId: member.id,
       isFixed: input.kind === "collective",
       priority: person.priority,
-      weight: 100,
+      weight: person.weight ?? 100,
     });
   }
   return rows;
@@ -232,7 +235,7 @@ async function updateCalendar(eventTypeId: number, hosts: Awaited<ReturnType<typ
       prisma.host.upsert({
         where: { userId_eventTypeId: { userId, eventTypeId } },
         create: { ...rest, userId, eventTypeId },
-        update: { isFixed: rest.isFixed, priority: rest.priority, memberId: rest.memberId },
+        update: { isFixed: rest.isFixed, priority: rest.priority, weight: rest.weight, memberId: rest.memberId },
       })
     ),
     prisma.eventType.update({ where: { id: eventTypeId }, data }),

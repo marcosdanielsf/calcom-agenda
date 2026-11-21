@@ -85,7 +85,17 @@ const getWebhooks = async (
     },
   });
 
-  return allWebhooks.map(WebhookOutputMapper.toSubscriberPartial);
+  // Webhook de usuario e de tipo de evento apontando para o mesmo destino, com o mesmo segredo e
+  // modelo, entregariam o mesmo aviso duas vezes. Entrega identica vira uma so.
+  const seen = new Set<string>();
+  const unique = allWebhooks.filter((w) => {
+    const key = JSON.stringify([w.subscriberUrl, w.secret, w.payloadTemplate, w.appId, w.version]);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return unique.map(WebhookOutputMapper.toSubscriberPartial);
 };
 
 export default withReporting(getWebhooks, "getWebhooks");
