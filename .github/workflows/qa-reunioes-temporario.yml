@@ -43,5 +43,6 @@ jobs:
       - run: yarn install --immutable
       - run: yarn playwright install --with-deps chromium
       - run: yarn biome check apps/web/modules/event-types/components/EventTypeLayout.tsx apps/web/modules/event-types/views/event-types-listing-view.tsx apps/web/playwright/event-types.e2e.ts
+      - run: yarn db-deploy
       - run: yarn db-seed
-      - run: yarn playwright test apps/web/playwright/event-types.e2e.ts --project=@calcom/web --grep "Nexus switches calendar groups"
+      - run: yarn playwright test apps/web/playwright/event-types.e2e.ts --project=@calcom/web --grep "Nexus switches calendar groups|editor de reunião mantém navegação"
