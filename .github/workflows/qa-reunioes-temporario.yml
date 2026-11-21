@@ -53,7 +53,8 @@ jobs:
       - run: yarn workspace @calcom/web copy-app-store-static
       # QA only: production's Dockerfile builds before `next start`; use dev here to
       # avoid an unrelated repository-wide typecheck while retaining a real web server.
-      - run: perl -0pi -e 's/yarn workspace \@calcom\/web start -p 3000/yarn workspace \@calcom\/web dev -p 3000/; s/timeout: 60_000,/timeout: 180_000,/' playwright.config.ts
+      - run: >-
+          perl -0pi -e 's/yarn workspace \@calcom\/web start -p 3000/yarn workspace \@calcom\/web dev -p 3000/; s/timeout: 60_000,/timeout: 180_000,/' playwright.config.ts
       - id: playwright
         continue-on-error: true
         run: yarn playwright test apps/web/playwright/event-types.e2e.ts --project=@calcom/web --grep "Nexus switches calendar groups|editor de reunião mantém navegação"
